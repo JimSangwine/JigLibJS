@@ -358,9 +358,7 @@
 	 * @type boolean
 	 **/
 	PhysicsSystem.prototype.findBody=function(body){
-		var i=this._bodies.length-1;
-		if (i > 0) do { if(body==this._bodies[i]) return true; } while (i--);
-		return false;
+		return (this._bodies.indexOf(body)>-1);
 	};
 
 	/**
@@ -716,8 +714,10 @@
 			body0.setConstraintsAndCollisionsUnsatisfied();
 			body1.setConstraintsAndCollisionsUnsatisfied();
 			// dispatch collision events
-			body0.dispatchEvent(new JCollisionEvent(body1, appliedImpulse));
-			body1.dispatchEvent(new JCollisionEvent(body0, JNumber3D.getScaleVector(appliedImpulse, -1)));
+			if(Vector3DUtil.get_length(appliedImpulse)>0){ //only fire event if the impulse size is greater then zero
+				body0.dispatchEvent(new JCollisionEvent(body1, appliedImpulse));
+				body1.dispatchEvent(new JCollisionEvent(body0, JNumber3D.getScaleVector(appliedImpulse, -1)));
+			}
 		}
 		return gotOne;
 	};
@@ -845,8 +845,10 @@
 			body0.setConstraintsAndCollisionsUnsatisfied();
 			body1.setConstraintsAndCollisionsUnsatisfied();
 			// dispatch collision events
-			body0.dispatchEvent(new JCollisionEvent(body1, appliedImpulse));
-			body1.dispatchEvent(new JCollisionEvent(body0, JNumber3D.getScaleVector(appliedImpulse, -1)));
+			if(Vector3DUtil.get_length(appliedImpulse)>0){ //only fire event if the impulse size is greater then zero
+				body0.dispatchEvent(new JCollisionEvent(body1, appliedImpulse));
+				body1.dispatchEvent(new JCollisionEvent(body0, JNumber3D.getScaleVector(appliedImpulse, -1)));
+			}
 		}
 		return gotOne;
 	};
@@ -1287,7 +1289,6 @@
 	 **/
 	PhysicsSystem.prototype.findAllActiveBodies=function(){
 		this._activeBodies = [];
-				
 		for(var i=0, bl=this._bodies.length; i<bl; i++){
 			var _body=this._bodies[i];
 			if (_body.isActive)
