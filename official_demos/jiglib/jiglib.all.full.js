@@ -42,16 +42,16 @@ jigLib.extend=function(dest,source){
 		rotationType: "DEGREES",
 		aabbDetection: true,
 		doShockStep:  false,
-		allowedPenetration: 0.01,
-		collToll: 0.05,
-		velThreshold: 0.7,
+		allowedPenetration: 0.05,
+		collToll: 0.01,
+		velThreshold: 0.1,
 		angVelThreshold: 5,
-		posThreshold: 0.7,
-		orientThreshold: 0.7, 
-		deactivationTime: 0.2, 
-		numPenetrationRelaxationTimesteps: 50,
+		posThreshold: 0.1,
+		orientThreshold: 0.1, 
+		deactivationTime: 0.1, 
+		numPenetrationRelaxationTimesteps: 20,
 		numCollisionIterations: 4,
-		numContactIterations: 8,
+		numContactIterations: 5,
 		numConstraintIterations: 15
 	};
 	 
@@ -2781,7 +2781,7 @@ jigLib.extend=function(dest,source){
 	var Vector3DUtil=jigLib.Vector3DUtil;
 	var RigidBody=jigLib.RigidBody;
 	
-	var CollOutBodyData=function(frac, positionl, normal, rigidBody){
+	var CollOutBodyData=function(frac, position, normal, rigidBody){
 		if(frac==undefined) frac=0;
 		this.Super(frac, position, normal);
 		this.rigidBody = rigidBody;
@@ -2793,71 +2793,20 @@ jigLib.extend=function(dest,source){
 })(jigLib);	
 	(function(jigLib){
 	var Vector3DUtil=jigLib.Vector3DUtil;
-	var JAABox=jigLib.JAABox;
-	var JNumber3D=jigLib.JNumber3D;
-                
-	var OctreeCell=function(aabox){
-		childCellIndices = [];
-		triangleIndices = [];
-                        
-		this.clear();
-                        
-		if(aabox){
-			AABox = aabox.clone();
-		}else {
-			AABox = new JAABox();
-		}
-		this._points = AABox.getAllPoints();
-		this._egdes = AABox.get_edges();
-	}
+	var RigidBody=jigLib.RigidBody;
+	
+	var CollOutData=function(frac, position, normal){
+		if(frac==undefined)frac=0;
 		
-	OctreeCell.prototype.NUM_CHILDREN = 8;
-                
-	// indices of the children (if not leaf). Will be -1 if there is no child
-        OctreeCell.prototype.childCellIndices=null;
-	// indices of the triangles (if leaf)
-        OctreeCell.prototype.triangleIndices=null;
-	// Bounding box for the space we own
-	OctreeCell.prototype.AABox;
-                
-        OctreeCell.prototype._points=null;
-        OctreeCell.prototype._egdes=null;
+		this.frac = frac;
+		this.position = position ? position : [0,0,0];
+		this.normal = normal ? normal : [0,0,0];
+	};
 	
-	// Indicates if we contain triangles (if not then we should/might have children)
-        OctreeCell.prototype.isLeaf=function() {
-		return this.childCellIndices[0] == -1;
-	}
-                
-	OctreeCell.prototype.clear=function(){
-		for (var i = 0; i < this.NUM_CHILDREN; i++ ) {
-			this.childCellIndices[i] = -1;
-		}
-		this.triangleIndices.splice(0, this.triangleIndices.length);
-	}
-                
-	OctreeCell.prototype.get_points=function(){
-		return this._points;
-	}
-	OctreeCell.prototype.get_egdes=function(){
-		return this._egdes;
-	}
-	
-	jigLib.OctreeCell=OctreeCell;
-
-})(jigLib);		
-
-(function(jigLib){
-        // structure used to set up the mesh
-	var TriangleVertexIndices=function(_i0, _i1, _i2){
-		this.i0 = _i0;
-		this.i1 = _i1;
-		this.i2 = _i2;
-	}
-	
-	jigLib.TriangleVertexIndices=TriangleVertexIndices;
+	jigLib.CollOutData=CollOutData;
 
 })(jigLib);	
-(function(jigLib){
+	(function(jigLib){
 	/**
 	 * @author katopz
 	 * 
@@ -2892,6 +2841,59 @@ jigLib.extend=function(dest,source){
 	
 	jigLib.EdgeData=EdgeData;
 })(jigLib);(function(jigLib){
+	var Vector3DUtil=jigLib.Vector3DUtil;
+	var JAABox=jigLib.JAABox;
+	var JNumber3D=jigLib.JNumber3D;
+                
+	var OctreeCell=function(aabox){
+		this.childCellIndices = [-1,-1,-1,-1,-1,-1,-1,-1];
+		this.triangleIndices = [];
+                        
+		this.clear();
+                        
+		if(aabox){
+			this.AABox = aabox.clone();
+		}else {
+			this.AABox = new JAABox();
+		}
+		this._points = this.AABox.getAllPoints();
+		this._egdes = this.AABox.get_edges();
+	}
+		
+	OctreeCell.NUM_CHILDREN = 8;
+                
+	// indices of the children (if not leaf). Will be -1 if there is no child
+        OctreeCell.prototype.childCellIndices=null;
+	// indices of the triangles (if leaf)
+        OctreeCell.prototype.triangleIndices=null;
+	// Bounding box for the space we own
+	OctreeCell.prototype.AABox=null;
+                
+        OctreeCell.prototype._points=null;
+        OctreeCell.prototype._egdes=null;
+	
+	// Indicates if we contain triangles (if not then we should/might have children)
+        OctreeCell.prototype.isLeaf=function() {
+		return this.childCellIndices[0] == -1;
+	}
+                
+	OctreeCell.prototype.clear=function(){
+		for (var i = 0; i < this.NUM_CHILDREN; i++ ) {
+			this.childCellIndices[i] = -1;
+		}
+		this.triangleIndices.splice(0, this.triangleIndices.length);
+	}
+                
+	OctreeCell.prototype.get_points=function(){
+		return this._points;
+	}
+	OctreeCell.prototype.get_egdes=function(){
+		return this._egdes;
+	}
+	
+	jigLib.OctreeCell=OctreeCell;
+
+})(jigLib);		(function(jigLib){
 
 	var Vector3DUtil=jigLib.Vector3DUtil;
 	var JMath3D=jigLib.JMath3D;
@@ -2976,7 +2978,19 @@ jigLib.extend=function(dest,source){
 	SpanData.prototype.depth=null;
 	
 	jigLib.SpanData=SpanData;
-})(jigLib);(function(jigLib){
+})(jigLib);
+(function(jigLib){
+        // structure used to set up the mesh
+	var TriangleVertexIndices=function(_i0, _i1, _i2){
+		this.i0 = _i0;
+		this.i1 = _i1;
+		this.i2 = _i2;
+	}
+	
+	jigLib.TriangleVertexIndices=TriangleVertexIndices;
+
+})(jigLib);	
+(function(jigLib){
 	var PhysicsSystem=jigLib.PhysicsSystem;
 	
 	/**
@@ -3181,6 +3195,7 @@ distribution.
 	var Vector3DUtil=jigLib.Vector3DUtil;
 	var JNumber3D=jigLib.JNumber3D;
 	var EdgeData=jigLib.EdgeData;
+	var JMath3D=jigLib.JMath3D;
 	
 	/**
 	 * @author Muzer(muzerly@gmail.com)
@@ -3199,6 +3214,9 @@ distribution.
 		if(minPos){
 			this._minPos = minPos.slice(0);
 			this._maxPos = maxPos.slice(0);
+		}else{
+			this._minPos = [0,0,0];
+			this._maxPos = [0,0,0];
 		}
 	};
 	
@@ -3470,6 +3488,17 @@ distribution.
 	JAABox.prototype.getRadiusAboutCentre=function(){
 		return 0.5 * (Vector3DUtil.get_length(Vector3DUtil.subtract(this._maxPos,this._minPos)));
 	}
+	
+	JAABox.prototype.scaleBox=function(factor){
+		var center=this.get_centrePos()
+		var deltamin=Vector3DUtil.subtract(this._minPos,center);
+		Vector3DUtil.scaleBy(deltamin,factor);
+		this._minPos=Vector3DUtil.subtract(this._minPos,deltamin);
+		
+		var deltamax=Vector3DUtil.subtract(this._maxPos,center);
+		Vector3DUtil.scaleBy(deltamax,factor);
+		this._maxPos=Vector3DUtil.subtract(this._maxPos,deltamax);
+	}
 
 	/**
 	 * @function toString  
@@ -3480,6 +3509,72 @@ distribution.
 		var _maxPos=this._maxPos;
 		return [_minPos[0],_minPos[1],_minPos[2],_maxPos[0],_maxPos[1],_maxPos[2]].toString();
 	};
+	
+	JAABox.prototype.segmentAABoxOverlap=function(seg){
+		pt1 = seg.origin.slice(0);
+		pt2 = seg.getEnd().slice(0);
+
+		//if either point is inside the box then it must overlap!
+		if(this.isPointInside(pt1) || this.isPointInside(pt2)){
+			return true;
+		}
+		
+		min= this._minPos.slice(0);
+		max = this._maxPos.slice(0);
+		
+		var sidesIntersected1=( (pt1[0]-min[0])*(pt2[0]-min[0])<0 ) + ( (pt1[0]-max[0])*(pt2[0]-max[0])<0 ) +
+		( (pt1[1]-min[1])*(pt2[1]-min[1])<0 ) + ( (pt1[1]-max[1])*(pt2[1]-max[1])<0 );
+		
+		var sidesIntersected2=( (pt1[0]-min[0])*(pt2[0]-min[0])<0 ) + ( (pt1[0]-max[0])*(pt2[0]-max[0])<0 ) +
+		( (pt1[2]-min[2])*(pt2[2]-min[2])<0 ) + ( (pt1[2]-max[2])*(pt2[2]-max[2])<0 );
+		
+		var sidesIntersected3=( (pt1[1]-min[1])*(pt2[1]-min[1])<0 ) + ( (pt1[1]-max[1])*(pt2[1]-max[1])<0 ) +
+		( (pt1[2]-min[2])*(pt2[2]-min[2])<0 ) + ( (pt1[2]-max[2])*(pt2[2]-max[2])<0 );
+		
+		if((sidesIntersected1>1) + (sidesIntersected2>1) + (sidesIntersected3>1)>1) return true;
+		
+		return false;
+	};
+	/*
+	JAABox.prototype.segmentAABoxOverlap=function(seg){
+		var jDir,kDir,i,iFace;
+		var frac,dist0,dist1,tiny=JNumber3D.NUM_TINY;
+                        
+		var pt,minPosArr,maxPosArr,p0,p1,faceOffsets;
+		minPosArr = this._minPos.slice(0);
+		maxPosArr = this._maxPos.slice(0);
+		p0 = seg.origin.slice(0);
+		p1 = seg.getEnd().slice(0);
+		for (i = 0; i < 3; i++ ) {
+			jDir = (i + 1) % 3;
+			kDir = (i + 2) % 3;
+			faceOffsets = [minPosArr[i], maxPosArr[i]];
+                                
+			for (iFace = 0 ; iFace < 2 ; iFace++) {
+				dist0 = p0[i] - faceOffsets[iFace];
+				dist1 = p1[i] - faceOffsets[iFace];
+				frac = -1;
+				if (dist0 * dist1 < -tiny){
+					frac = -dist0 / (dist1 - dist0);
+				}else if (Math.abs(dist0) < tiny){
+					frac = 0;
+				}else if (Math.abs(dist1) < tiny){
+					frac = 1;
+				}
+				if (frac >= 0) {
+					pt = seg.getPoint(frac).slice(0);
+					if((pt[jDir] > minPosArr[jDir] - tiny) && 
+					(pt[jDir] < maxPosArr[jDir] + tiny) && 
+					(pt[kDir] > minPosArr[kDir] - tiny) && 
+					(pt[kDir] < maxPosArr[kDir] + tiny)) {
+						return true;
+					}
+				}
+			}
+		}
+		return false;
+	}*/
+
 
 	jigLib.JAABox=JAABox;
 	
@@ -3925,7 +4020,7 @@ distribution.
 		this._linVelDamping = [0.995, 0.995, 0.995, 0];
 		this._rotVelDamping = [0.5, 0.5, 0.5, 0];
 		this._maxLinVelocities = 500;
-		this._maxRotVelocities = 50;
+		this._maxRotVelocities = 500;
 
 		this._velChanged = false;
 		this._inactiveTime = 0;
@@ -4372,7 +4467,7 @@ distribution.
 	 **/
 	RigidBody.prototype.applyWorldImpulse=function(impulse, pos){
 		if (!this._movable) return;
-		
+				
 		this._currState.linVelocity = Vector3DUtil.add(this._currState.linVelocity, JNumber3D.getScaleVector(impulse, this._invMass));
 
 		var rotImpulse = Vector3DUtil.crossProduct(Vector3DUtil.subtract(pos, this._currState.position), impulse);
@@ -4390,7 +4485,7 @@ distribution.
 	 **/
 	RigidBody.prototype.applyWorldImpulseAux=function(impulse, pos){
 		if (!this._movable) return;
-		
+						
 		this._currLinVelocityAux = Vector3DUtil.add(this._currLinVelocityAux, JNumber3D.getScaleVector(impulse, this._invMass));
 
 		var rotImpulse = Vector3DUtil.crossProduct(Vector3DUtil.subtract(pos, this._currState.position), impulse);
@@ -4407,10 +4502,11 @@ distribution.
 	 * @type void
 	 **/
 	RigidBody.prototype.applyBodyWorldImpulse=function(impulse, delta){
+
 		if (!this._movable) return;
-		
+				
 		this._currState.linVelocity = Vector3DUtil.add(this._currState.linVelocity, JNumber3D.getScaleVector(impulse, this._invMass));
-		var rotImpulse = Vector3DUtil.crossProduct(delta, impulse);
+		var rotImpulse = Vector3DUtil.crossProduct(delta, impulse); 
 		JMatrix3D.multiplyVector(this._worldInvInertia, rotImpulse);
 		this._currState.rotVelocity = Vector3DUtil.add(this._currState.rotVelocity, rotImpulse);
 
@@ -4425,7 +4521,7 @@ distribution.
 	 **/
 	RigidBody.prototype.applyBodyWorldImpulseAux=function(impulse, delta){
 		if (!this._movable) return;
-		
+				
 		this._currLinVelocityAux = Vector3DUtil.add(this._currLinVelocityAux, JNumber3D.getScaleVector(impulse, this._invMass));
 
 		var rotImpulse = Vector3DUtil.crossProduct(delta, impulse);
@@ -4640,7 +4736,7 @@ distribution.
 	 * @type void
 	 **/
 	RigidBody.prototype.set_movable=function(mov){
-		if (this._type == "PLANE" || this._type == "TERRAIN") 
+		if (this._type == "PLANE" || this._type == "TERRAIN" || this._type == "TRIANGLEMESH") 
 			return;
 
 		this._movable = mov;
@@ -4653,7 +4749,7 @@ distribution.
 	 * @type void
 	 **/
 	RigidBody.prototype.internalSetImmovable=function(){
-		if (this._type == "PLANE" || this._type == "TERRAIN") 
+		if (this._type == "PLANE" || this._type == "TERRAIN" || this._type == "TRIANGLEMESH") 
 			return;
 		this._origMovable = this._movable;
 		this._movable = false;
@@ -4664,7 +4760,7 @@ distribution.
 	 * @type void
 	 **/
 	RigidBody.prototype.internalRestoreImmovable=function(){
-		if (this._type == "PLANE" || this._type == "TERRAIN") 
+		if (this._type == "PLANE" || this._type == "TERRAIN" || this._type == "TRIANGLEMESH") 
 			return;
 		this._movable = this._origMovable;
 	};
@@ -5239,15 +5335,14 @@ distribution.
 	
 	JEffect.prototype._effectEnabled=false;
 	
-	JEffect.prototype.__defineGetter__('enabled', 
-										function() { return this._effectEnabled; });
-	JEffect.prototype.__defineSetter__('enabled', 
-										function(bool) {
-											  				if (bool == this._effectEnabled) return;
-											  				this._effectEnabled = bool;
-											  				if (bool) jigLib.PhysicsSystem.getInstance().addEffect(this);
-											  				else jigLib.PhysicsSystem.getInstance().removeEffect(this);
-														});
+	JEffect.prototype.getEnabled=function() { return this._effectEnabled; };
+	JEffect.prototype.setEnabled=function(bool) 
+	{
+		if (bool == this._effectEnabled) return;
+		this._effectEnabled = bool;
+		if (bool) jigLib.PhysicsSystem.getInstance().addEffect(this);
+		else jigLib.PhysicsSystem.getInstance().removeEffect(this);
+	};
 	
 	/**
 	 * @function Apply this should be implemented by the effect to apply force to bodies in the physics system as appropriate.
@@ -5305,7 +5400,7 @@ distribution.
 		if (_parent) this.parent=_parent;
 		if (_parent && _relativity) this.relativity=true;
 		// set to NOT fire instantly...
-		this.enabled = false;
+		this.setEnabled(false);
 	};
 	jigLib.extend(Explosion,jigLib.JEffect);
 
@@ -5321,7 +5416,7 @@ distribution.
 	 * @type void
 	 **/
 	Explosion.prototype.explode = function() {
-		this.enabled = true;
+		this.setEnabled(false);
 	};
 	
 	/**
@@ -5330,7 +5425,7 @@ distribution.
 	 * @type void
 	 **/
 	Explosion.prototype.Apply = function() {
-		this.enabled = false;
+		this.setEnabled(false);
 		var system=jigLib.PhysicsSystem.getInstance();
 		
 		var bodies=system.get_bodies();
@@ -5521,800 +5616,6 @@ distribution.
 	
 	jigLib.Wind=Wind;
 })(jigLib);(function(jigLib){
-	var Vector3DUtil=jigLib.Vector3DUtil;
-	var JNumber3D=jigLib.JNumber3D;
-	var PlaneData=jigLib.PlaneData;
-	
-        /// Support for an indexed triangle - assumes ownership by something that 
-        /// has an array of vertices and an array of tIndexedTriangle
-	var JIndexedTriangle=function(){
-		counter = 0;
-		this._vertexIndices = [];
-		this._vertexIndices[0] = -1;
-		this._vertexIndices[1] = -1;
-		this._vertexIndices[2] = -1;
-		this._plane = new PlaneData();
-		this._boundingBox = new JAABox();
-	};
-	
-	JIndexedTriangle.prototype.counter=0;
-        /// Set the indices into the relevant vertex array for this triangle. Also sets the plane and bounding box
-	JIndexedTriangle.prototype.setVertexIndices=function(i0, i1, i2, vertexArray){
-		this._vertexIndices[0] = i0;
-		this._vertexIndices[1] = i1;
-		this._vertexIndices[2] = i2;
-                        
-		this._plane.setWithPoint(vertexArray[i0], vertexArray[i1], vertexArray[i2]);
-                        
-		this._boundingBox.clear();
-		this._boundingBox.addPoint(vertexArray[i0]);
-		this._boundingBox.addPoint(vertexArray[i1]);
-		this._boundingBox.addPoint(vertexArray[i2]);
-	};
-	
-	JIndexedTriangle.prototype.updateVertexIndices=function(vertexArray){
-		var i0;
-		var i1;
-		var i2;
-		i0=this._vertexIndices[0];
-		i1=this._vertexIndices[1];
-		i2=this._vertexIndices[2];
-                        
-		this._plane.setWithPoint(vertexArray[i0], vertexArray[i1], vertexArray[i2]);
-                        
-		this._boundingBox.clear();
-		this._boundingBox.addPoint(vertexArray[i0]);
-		this._boundingBox.addPoint(vertexArray[i1]);
-		this._boundingBox.addPoint(vertexArray[i2]);
-	};
-	
-	
-	 // Get the indices into the relevant vertex array for this triangle.
-        JIndexedTriangle.prototype.get_vertexIndices=function(){
-		return this._vertexIndices;
-	};
-                
-	// Get the vertex index association with iCorner (which should be 0, 1 or 2)
-	JIndexedTriangle.prototype.getVertexIndex=function(iCorner){
-		return this._vertexIndices[iCorner];
-	};
-                
-	// Get the triangle plane
-        JIndexedTriangle.prototype.get_plane=function(){
-		return _plane;
-	};
-                
-        JIndexedTriangle.prototype.get_boundingBox=function(){
-		return this._boundingBox;
-	};
-	
-	
-	jigLib.JIndexedTriangle=JIndexedTriangle;
-
-})(jigLib);
-	(function(jigLib){
-	var Vector3DUtil=jigLib.Vector3DUtil;
-	var JNumber3D=jigLib.JNumber3D;
-	var EdgeData=jigLib.EdgeData;
-	var OctreeCell=jigLib.OctreeCell;
-	var TriangleVertexIndices=jigLib.TriangleVertexIndices;
-        
-	var JOctree=function(){
-		this._testCounter = 0;
-		this._cells = [];
-		this._vertices = [];
-		this._triangles = [];
-		this._cellsToTest = [];
-		this._boundingBox = [];
-	};
-	
-	
-	JOctree.prototype.get_trianglesData=function(){
-		return this._triangles;
-	};
-                
-        JOctree.prototype.getTriangle=function(iTriangle) {
-		return this._triangles[iTriangle];
-	};
-                
-        JOctree.prototype.get_verticesData=function(){
-		return this._vertices;
-	};
-        JOctree.prototype.getVertex=function(iVertex){
-		return this._vertices[iVertex];
-	};
-                
-        JOctree.prototype.boundingBox=function(){
-		return this._boundingBox;
-	};
-                
-	JOctree.prototype.clear=function(){
-		this._cells=[];
-		this._vertices=[];
-		this._triangles=[];
-	}
-	
-                
-	// Add the triangles - doesn't actually build the octree
-	JOctree.prototype.addTriangles=function(vertices, numVertices, triangleVertexIndices, numTriangles){
-		this.clear();
-                        
-		this._vertices.concat(vertices);
-                        
-		var NLen,tiny=JNumber3D.NUM_TINY;
-		var i0,i1,i2;
-		var dr1,dr2,N;
-		var indexedTriangle;
-		for(var i=0;i<triangleVertexIndices.length;i++){
-			var tri=triangleVertexIndices[i];
-			i0 = tri.i0;
-			i1 = tri.i1;
-			i2 = tri.i2;
-                                
-			dr1 = Vector3DUtil.subtract(vertices[i1],vertices[i0]);
-			dr2 = Vector3DUtil.subtract(vertices[i2],vertices[i0]);
-			N = Vector3DUtil.crossProduct(dr1,dr2);
-			NLen = Vector3DUtil.get_length(N);
-                                
-			if (NLen > tiny){
-				indexedTriangle = new JIndexedTriangle();
-				indexedTriangle.setVertexIndices(i0, i1, i2, this._vertices);
-				this._triangles.push(indexedTriangle);
-			}
-		}
-	}
-	
-	
-	/* Builds the octree from scratch (not incrementally) - deleting
-                 any previous tree.  Building the octree will involve placing
-                 all triangles into the root cell.  Then this cell gets pushed
-                 onto a stack of cells to examine. This stack will get parsed
-                 and every cell containing more than maxTrianglesPerCell will
-                 get split into 8 children, and all the original triangles in
-                 that cell will get partitioned between the children. A
-                 triangle can end up in multiple cells (possibly a lot!) if it
-                 straddles a boundary. Therefore when intersection tests are
-                 done tIndexedTriangle::m_counter can be set/tested using a
-                 counter to avoid properly testing the triangle multiple times
-                 (the counter _might_ wrap around, so when it wraps ALL the
-                 triangle flags should be cleared! Could do this
-                 incrementally...).*/
-	JOctree.prototype.buildOctree=function(maxTrianglesPerCell, minCellSize){
-		this._boundingBox.clear();
-                        
-		for(var i=0;i<this._vertices.length;i++){
-			var vt=this._vertices[i];
-			this._boundingBox.addPoint(vt);
-		}
-                        
-		this._cells=[];
-		this._cells.push(new OctreeCell(this._boundingBox));
-                        
-		var numTriangles = this._triangles.length;
-		for (var i = 0; i < numTriangles; i++ ) {
-			this._cells[0].triangleIndices[i] = i;
-		}
-                        
-		var cellsToProcess = [];
-		cellsToProcess.push(0);
-                        
-		var iTri;
-		var cellIndex;
-		var childCell;
-		while (cellsToProcess.length != 0) {
-			cellIndex = cellsToProcess.pop();
-			if (this._cells[cellIndex].triangleIndices.length <= maxTrianglesPerCell || this._cells[cellIndex].AABox.getRadiusAboutCentre() < minCellSize) {
-				continue;
-			}
-			for (i = 0; i < OctreeCell.NUM_CHILDREN; i++ ) {
-				this._cells[cellIndex].childCellIndices[i] = this._cells.length;
-				cellsToProcess.push(this._cells.length);
-				this._cells.push(new OctreeCell(this.createAABox(this._cells[cellIndex].AABox, i)));
-                                        
-				childCell = this._cells[this._cells.length - 1];
-				numTriangles = this._cells[cellIndex].triangleIndices.length;
-				for (var j=0; j < numTriangles; j++ ) {
-					iTri = this._cells[cellIndex].triangleIndices[j];
-					if (this.doesTriangleIntersectCell(this._triangles[iTri], childCell))
-					{
-						childCell.triangleIndices.push(iTri);
-					}
-				}
-			}
-			this._cells[cellIndex].triangleIndices=[];
-		}
-	}
-                
-	JOctree.prototype.updateTriangles=function(vertices){
-		this._vertices.concat(vertices);
-		for(var i=0;i<this._triangles.length;i++){
-			var triangle=this._triangles[i];
-			triangle.updateVertexIndices(this._vertices);
-		}
-	}
-                
-	/* Gets a list of all triangle indices that intersect an AABox. The vector passed in resized,
-                 so if you keep it between calls after a while it won't grow any more, and this
-                 won't allocate more memory.
-                 Returns the number of triangles (same as triangles.size())*/
-	JOctree.prototype.getTrianglesIntersectingtAABox=function(triangles, aabb){
-		if (this._cells.length == 0) return 0;
-                        
-		this._cellsToTest=[];
-		this._cellsToTest.push(0);
-                        
-		this.incrementTestCounter();
-                        
-		var cellIndex,nTris,cell,triangle;
-                        
-		while (this._cellsToTest.length != 0) {
-			cellIndex = this._cellsToTest.pop();
-                                
-			cell = this._cells[cellIndex];
-                                
-			if (!aabb.overlapTest(cell.AABox)) {
-				continue;
-			}
-                                
-			if (cell.isLeaf()) {
-				nTris = cell.triangleIndices.length;
-				for (var i = 0 ; i < nTris ; i++) {
-					triangle = this.getTriangle(cell.triangleIndices[i]);
-					if (triangle.counter != this._testCounter) {
-						triangle.counter = this._testCounter;
-						if (aabb.overlapTest(triangle.get_boundingBox())) {
-							triangles.push(cell.triangleIndices[i]);
-						}
-					}
-				}
-			}else {
-				for (i = 0 ; i < OctreeCell.NUM_CHILDREN ; i++) {
-					this._cellsToTest.push(cell.childCellIndices[i]);
-				}
-			}
-		}
-		return triangles.length;
-	}
-                
-	JOctree.prototype.dumpStats=function(){
-		var maxTris = 0,numTris,cellIndex,cell;
-                        
-		var cellsToProcess = [];
-		cellsToProcess.push(0);
-                        
-		while (cellsToProcess.length != 0) {
-			cellIndex = cellsToProcess.pop();
-                                
-			cell = cell[cellIndex];
-			if (cell.isLeaf()) {
-                                        
-				numTris = cell.triangleIndices.length;
-				if (numTris > maxTris) {
-					maxTris = numTris;
-				}
-			}else {
-				for (var i = 0 ; i < OctreeCell.NUM_CHILDREN ; i++) {
-					if ((cell.childCellIndices[i] >= 0) && (cell.childCellIndices[i] < this._cells.length)) {
-						cellsToProcess.push(cell.childCellIndices[i]);
-					}
-				}
-			}
-		}
-	}
-	
-	
-	// Create a bounding box appropriate for a child, based on a parents AABox
-	JOctree.prototype.createAABox=function(aabb, _id){
-		var dims = JNumber3D.getScaleVector(Vector3DUtil.subtract(aabb.maxPos,aabb.minPos), 0.5);
-		var offset;
-		switch(_id) {
-			case 0:
-				offset = [1, 1, 1];
-				break;
-			case 1:
-				offset = [1, 1, 0];
-				break;
-			case 2:
-				offset = [1, 0, 1];
-				break;
-			case 3:
-				offset = [1, 0, 0];
-				break;
-			case 4:
-				offset = [0, 1, 1];
-				break;
-			case 5:
-				offset = [0, 1, 0];
-				break;
-			case 6:
-				offset = [0, 0, 1];
-				break;
-			case 7:
-				offset = [0, 0, 0];
-				break;
-			default:
-				offset = [0, 0, 0];
-				break;
-		}
-                        
-		var result = new JAABox();
-		result.minPos = Vector3DUtil.add(aabb.minPos,[offset.x * dims.x, offset.y * dims.y, offset.z * dims.z]);
-		result.maxPos = Vector3DUtil.add(result.minPos,dims);
-                        
-		Vector3DUtil.scaleBy(dims,0.00001);
-		result.minPos = Vector3DUtil.subtract(result.minPos,dims);
-		result.maxPos = Vector3DUtil.subtract(result.maxPos,dims);
-                        
-		return result;
-	}	
-	
-	
-	// Returns true if the triangle intersects or is contained by a cell
-	JOctree.prototype.doesTriangleIntersectCell=function(triangle, cell){
-		if (!triangle.get_boundingBox().overlapTest(cell.AABox)) {
-			return false;
-		}
-		if (cell.AABox.isPointInside(this.getVertex(triangle.getVertexIndex(0))) ||
-			cell.AABox.isPointInside(this.getVertex(triangle.getVertexIndex(1))) ||
-			cell.AABox.isPointInside(this.getVertex(triangle.getVertexIndex(2)))) {
-			return true;
-		}
-                                
-		var tri = new JTriangle(this.getVertex(triangle.getVertexIndex(0)), this.getVertex(triangle.getVertexIndex(1)), this.getVertex(triangle.getVertexIndex(2)));
-		var edge;
-		var seg;
-		var edges = cell.egdes;
-		var pts = cell.points;
-		for (var i = 0; i < 12; i++ ) {
-			edge = edges[i];
-			seg = new JSegment(pts[edge.ind0], Vector3DUtil.subtract(pts[edge.ind1],pts[edge.ind0]));
-			if (tri.segmentTriangleIntersection(null, seg)) {
-				return true;
-			}
-		}
-                        
-		var pt0;
-		var pt1;
-		for (i = 0; i < 3; i++ ) {
-			pt0 = tri.getVertex(i);
-			pt1 = tri.getVertex((i + 1) % 3);
-			if (cell.AABox.segmentAABoxOverlap(new JSegment(pt0, Vector3DUtil.subtract(pt1,pt0)))) {
-				return true;
-			}
-		}
-		return false;
-	}
-	
-                
-	/* Increment our test counter, wrapping around if necessary and zapping the triangle counters.
-                 Const because we only modify mutable members.*/
-	JOctree.prototype.incrementTestCounter=function(){
-		++this._testCounter;
-		if (this._testCounter == 0) {
-			var numTriangles = this._triangles.length;
-			for (var i = 0; i < numTriangles; i++) {
-				this._triangles[i].counter = 0;
-			}
-			this._testCounter = 1;
-		}
-	}
-	
-	
-	jigLib.JOctree=JOctree;
-
-})(jigLib);
-	
-	(function(jigLib){
-	var Vector3DUtil=jigLib.Vector3DUtil;
-	var JNumber3D=jigLib.JNumber3D;
-	var CollOutData=jigLib.CollOutData;
-	var PlaneData=jigLib.PlaneData;
-	var SpanData=jigLib.SpanData;
-	
-	// Defines a 3d triangle. Each edge goes from the origin. Cross(edge0, edge1)  gives the triangle normal.
-	
-	// Points specified so that pt1-pt0 is edge0 and p2-pt0 is edge1
-	var JTriangle=function(pt0, pt1, pt2){
-		origin = Vector3DUtil.clone(pt0);
-		edge0 = Vector3DUtil.subtract(pt1,pt0);
-		edge1 = Vector3DUtil.subtract(pt2,pt0);
-	};
-	
-                
-	// Edge2 goes from pt1 to pt2
-	JTriangle.prototype.get_edge2=function() {
-		return Vector3DUtil.subtract(edge1,edge0);
-	};
-                
-	// Gets the triangle normal.
-	JTriangle.prototype.get_normal=function(){
-		var N = Vector3DUtil.crossProduct(edge0,edge1);
-		Vector3DUtil.normalize(N);
-                        
-		return N;
-	};
-                
-	// Gets the plane containing the triangle
-	JTriangle.prototype.get_plane=function(){
-		var pl = new PlaneData();
-		pl.setWithNormal(origin, normal);
-                        
-		return pl;
-	};
-                
-	// Returns the point parameterised by t0 and t1
-	JTriangle.prototype.getPoint=function(t0, t1) {
-		var d0,d1;
-		d0 = Vector3DUtil.crossProduct(edge0);
-		d1 = Vector3DUtil.crossProduct(edge1);
-                        
-		Vector3DUtil.scaleBy(d0,t0);
-		Vector3DUtil.scaleBy(d1,t1);
-                        
-		return Vector3DUtil.add(Vector3DUtil.add(origin,d0),d1);
-	};
-	
-	
-	JTriangle.prototype.getCentre=function() {
-		var result = Vector3DUtil.add(edge0,edge1);
-		Vector3DUtil.scaleBy(result,0.333333);
-                        
-		return Vector3DUtil.add(origin,result);
-	};
-                
-	// Same numbering as in the constructor
-	JTriangle.prototype.getVertex=function(_id){
-		switch(_id) {
-			case 1: 
-				return Vector3DUtil.add(origin,edge0);
-			case 2:
-				return Vector3DUtil.add(origin,edge1);
-			default:
-				return origin;
-		}
-	};
-	
-	JTriangle.prototype.getSpan=function(axis) {
-		var d0,d1,d2;
-		d0 = Vector3DUtil.dotProduct(this.getVertex(0),axis);
-		d1 = Vector3DUtil.dotProduct(this.getVertex(1),axis);
-		d2 = Vector3DUtil.dotProduct(this.getVertex(2),axis);
-                        
-		var result = new SpanData();
-		result.min = Math.min(d0, d1, d2);
-		result.max = Math.max(d0, d1, d2);
-                        
-		return result;
-	};
-	
-	
-	JTriangle.prototype.segmentTriangleIntersection=function(out, seg){
-                        
-		var u,v,t,a,f;
-		var p,s,q;
-                        
-		p = Vector3DUtil.crossProduct(seg.delta,edge1);
-		a =Vector3DUtil.dotProduct(edge0,p);
-                        
-		if (a > -JNumber3D.NUM_TINY && a < JNumber3D.NUM_TINY) {
-			return false;
-		}
-		f = 1 / a;
-		s = Vector3DUtil.subtract(seg.origin,origin);
-		u = f * s.dotProduct(p);
-                        
-		if (u < 0 || u > 1) return false;
-                        
-		q = Vector3DUtil.crossProduct(s,edge0);
-		v = f * Vector3DUtil.dotProduct(seg.delta,q);
-		if (v < 0 || (u + v) > 1) return false;
-                        
-		t = f * Vector3DUtil.dotProduct(edge1,q);
-		if (t < 0 || t > 1) return false;
-                        
-		if (out) out.frac = t;
-		return true;
-	}
-	
-	
-	JTriangle.prototype.pointTriangleDistanceSq=function(out, point){
-                        
-		var fA00,fA01,fA11,fB0,fB1,fC,fDet,fS,fT,fSqrDist;
-                        
-		var kDiff = Vector3DUtil.subtract(origin,point);
-                    fA00 = Vector3DUtil.get_lengthSquared(edge0);
-                    fA01 = Vector3DUtil.dotProduct(edge0,edge1);
-                    fA11 = Vector3DUtil.get_lengthSquared(edge1);
-                    fB0 = Vector3DUtil.dotProduct(kDiff,edge0);
-                    fB1 = Vector3DUtil.dotProduct(kDiff,edge1);
-                    fC = Vector3DUtil.get_lengthSquared(kDiff);
-                    fDet = Math.abs(fA00 * fA11 - fA01 * fA01);
-                    fS = fA01 * fB1 - fA11 * fB0;
-                    fT = fA01 * fB0 - fA00 * fB1;
-                        
-                  if ( fS + fT <= fDet ){
-                        if ( fS < 0 ){
-                          if ( fT < 0 ){  // region 4
-                                if ( fB0 < 0 ){
-                                  fT = 0;
-                                  if ( -fB0 >= fA00 ){
-                                        fS = 1;
-                                        fSqrDist = fA00+2*fB0+fC;
-                                  }else{
-                                        fS = -fB0/fA00;
-                                        fSqrDist = fB0*fS+fC;
-                                  }
-                                }else{
-                                  fS = 0;
-                                  if ( fB1 >= 0 ){
-                                        fT = 0;
-                                        fSqrDist = fC;
-                                  }else if ( -fB1 >= fA11 ){
-                                        fT = 1;
-                                        fSqrDist = fA11+2*fB1+fC;
-                                  }else{
-                                        fT = -fB1/fA11;
-                                        fSqrDist = fB1*fT+fC;
-                                  }
-                                }
-                          }else{  // region 3
-                                fS = 0;
-                                if ( fB1 >= 0 ){
-                                  fT = 0;
-                                  fSqrDist = fC;
-                                }else if ( -fB1 >= fA11 ){
-                                  fT = 1;
-                                  fSqrDist = fA11+2*fB1+fC;
-                                }else{
-                                  fT = -fB1/fA11;
-                                  fSqrDist = fB1*fT+fC;
-                                }
-                          }
-                        }else if ( fT < 0 ){  // region 5
-                          fT = 0;
-                          if ( fB0 >= 0 ){
-                                fS = 0;
-                                fSqrDist = fC;
-                          }else if ( -fB0 >= fA00 ){
-                                fS = 1;
-                                fSqrDist = fA00+2*fB0+fC;
-                          }else{
-                                fS = -fB0/fA00;
-                                fSqrDist = fB0*fS+fC;
-                          }
-                        }else{  // region 0
-                          // minimum at interior point
-                          var fInvDet = 1/fDet;
-                          fS *= fInvDet;
-                          fT *= fInvDet;
-                          fSqrDist = fS * (fA00 * fS + fA01 * fT + 2 * fB0) +fT * (fA01 * fS + fA11 * fT + 2 * fB1) + fC;
-                        }
-                  }else{
-                        var fTmp0;
-                		var fTmp1;
-                		var fNumer;
-                		var fDenom;
-
-                        if ( fS < 0 ){  // region 2
-                          fTmp0 = fA01 + fB0;
-                          fTmp1 = fA11 + fB1;
-                          if ( fTmp1 > fTmp0 ){
-                                fNumer = fTmp1 - fTmp0;
-                                fDenom = fA00-2*fA01+fA11;
-                                if ( fNumer >= fDenom ){
-                                  fS = 1;
-                                  fT = 0;
-                                  fSqrDist = fA00+2*fB0+fC;
-                                }else{
-                                  fS = fNumer/fDenom;
-                                  fT = 1 - fS;
-                                  fSqrDist = fS * (fA00 * fS + fA01 * fT + 2 * fB0) +fT * (fA01 * fS + fA11 * fT + 2 * fB1) + fC;
-                                }
-                          }else{
-                                fS = 0;
-                                if ( fTmp1 <= 0 ){
-                                  fT = 1;
-                                  fSqrDist = fA11+2*fB1+fC;
-                                }else if ( fB1 >= 0 ){
-                                  fT = 0;
-                                  fSqrDist = fC;
-                                }else {
-                                  fT = -fB1/fA11;
-                                  fSqrDist = fB1*fT+fC;
-                                }
-                          }
-                        }else if ( fT < 0 ) { // region 6
-                          fTmp0 = fA01 + fB1;
-                          fTmp1 = fA00 + fB0;
-                          if ( fTmp1 > fTmp0 ){
-                                fNumer = fTmp1 - fTmp0;
-                                fDenom = fA00-2*fA01+fA11;
-                                if ( fNumer >= fDenom ){
-                                  fT = 1;
-                                  fS = 0;
-                                  fSqrDist = fA11+2*fB1+fC;
-                                }else{
-                                  fT = fNumer/fDenom;
-                                  fS = 1 - fT;
-                                  fSqrDist = fS * (fA00 * fS + fA01 * fT + 2 * fB0) +fT * (fA01 * fS + fA11 * fT + 2 * fB1) + fC;
-                                }
-                          }else{
-                                fT = 0;
-                                if ( fTmp1 <= 0 ){
-                                  fS = 1;
-                                  fSqrDist = fA00+2*fB0+fC;
-                                }else if ( fB0 >= 0 ){
-                                  fS = 0;
-                                  fSqrDist = fC;
-                                }else{
-                                  fS = -fB0/fA00;
-                                  fSqrDist = fB0*fS+fC;
-                                }
-                          }
-                        }else{  // region 1
-                          fNumer = fA11 + fB1 - fA01 - fB0;
-                          if ( fNumer <= 0 ){
-                                fS = 0;
-                                fT = 1;
-                                fSqrDist = fA11+2*fB1+fC;
-                          }else{
-                                fDenom = fA00-2*fA01+fA11;
-                                if ( fNumer >= fDenom ){
-                                  fS = 1;
-                                  fT = 0;
-                                  fSqrDist = fA00 + 2 * fB0 + fC;
-                                }else{
-                                  fS = fNumer/fDenom;
-                                  fT = 1 - fS;
-                                  fSqrDist = fS * (fA00 * fS + fA01 * fT + 2 * fB0) +fT * (fA01 * fS + fA11 * fT + 2 * fB1) + fC;
-                                }
-                          }
-                        }
-                  }
-                  out[0] = fS;
-                  out[1] = fT;
-                 
-                  return Math.abs(fSqrDist);
-                }
-	
-	
-	jigLib.JTriangle=JTriangle;
-
-})(jigLib);	
-(function(jigLib){
-	var Vector3DUtil=jigLib.Vector3DUtil;
-	var JNumber3D=jigLib.JNumber3D;
-	var Matrix3D=jigLib.Matrix3D;
-	var CollOutData=jigLib.CollOutData;
-	var TriangleVertexIndices=jigLib.TriangleVertexIndices;
-	var PhysicsState=jigLib.PhysicsState;
-	var RigidBody=jigLib.RigidBody;
-	var ISkin3D=jigLib.ISkin3D;
-
-
-	var JTriangleMesh=function(skin, initPosition, initOrientation, maxTrianglesPerCell, minCellSize){
-		if(maxTrianglesPerCell==undefined) maxTrianglesPerCell=10;
-		if(minCellSize==undefined) minCellSize=10;
-		this.Super(skin);
-                        
-		this.get_currentState().position=Vector3DUtil.clone(initPosition);
-		this.get_currentState().set_orientation(Vector3DUtil.clone(initOrientation));
-		this._maxTrianglesPerCell = maxTrianglesPerCell;
-		this._minCellSize = minCellSize;
-                        
-		this.set_movable(false);
-                        
-		if(skin){
-			this._skinVertices=skin.vertices;
-			this.createMesh(this._skinVertices,skin.indices);
-                                
-			this._boundingBox=this._octree.boundingBox().clone();
-			this._boundingSphere=this._boundingBox.getRadiusAboutCentre();
-		}
-                        
-		this._type = "TRIANGLEMESH";
-	};
-	
-	jigLib.extend(JTriangleMesh,jigLib.RigidBody);
-	
-	
-	/*Internally set up and preprocess all numTriangles. Each index
-                 should, of course, be from 0 to numVertices-1. Vertices and
-                 triangles are copied and stored internally.*/
-        JTriangleMesh.prototype.createMesh=function(vertices, triangleVertexIndices){
-                        
-		var len=vertices.length;
-		var vts=[];
-                        
-		var transform = JMatrix3D.getTranslationMatrix(this.get_currentState().position[0], this.get_currentState().position[1], this.get_currentState().position[2]);
-		transform = JMatrix3D.getAppendMatrix3D(this.get_currentState().get_orientation(), transform);
-                        
-		var i = 0;
-		for(var j=0;j<vertices.length;j++){
-			var _point=vertices[j];
-			vts[i++] = this.transform.transformVector(_point);
-		}
-                        
-		this._octree = new JOctree();
-                        
-		this._octree.addTriangles(vts, vts.length, triangleVertexIndices, triangleVertexIndices.length);
-		this._octree.buildOctree(this._maxTrianglesPerCell, _minCellSize);
-                        
-	};
-	
-	
-	
-	JTriangleMesh.prototype.get_octree=function(){
-		return this._octree;
-	};
-                
-        JTriangleMesh.prototype.segmentIntersect=function(out, seg, state){
-		var segBox = new JAABox();
-		segBox.addSegment(seg);
-                        
-		var potentialTriangles = [];
-		var numTriangle = this._octree.getTrianglesIntersectingtAABox(potentialTriangles, segBox);
-                        
-		var bestFrac = JNumber3D.NUM_HUGE;
-		var tri;
-		var meshTriangle;
-		for (var iTriangle = 0 ; iTriangle < numTriangles; iTriangle++) {
-			meshTriangle = this._octree.getTriangle(potentialTriangles[iTriangle]);
-                                
-			tri = new JTriangle(this._octree.getVertex(meshTriangle.getVertexIndex(0)), this._octree.getVertex(meshTriangle.getVertexIndex(1)), this._octree.getVertex(meshTriangle.getVertexIndex(2)));
-                                
-			if (tri.segmentTriangleIntersection(out, seg)) {
-				if (out.frac < bestFrac) {
-					bestFrac = out.frac;
-					out.position = seg.getPoint(bestFrac);
-					out.normal = meshTriangle.plane.normal;
-				}
-			}
-		}
-		out.frac = bestFrac;
-		if (bestFrac < JNumber3D.NUM_HUGE) {
-			return true;
-		}else {
-			return false;
-		}
-	};
-	
-	JTriangleMesh.prototype.updateState=function(){
-		this.Super.updateState();
-                        
-		var len=this._skinVertices.length;
-		var vts=[];
-                        
-		var transform = JMatrix3D.getTranslationMatrix(this.get_currentState().position[0], this.get_currentState().position[1], this.get_currentState().position[2]);
-		transform = JMatrix3D.getAppendMatrix3D(this.get_currentState().get_orientation(), transform);
-                        
-		var i = 0;
-		for(k=0;j<this._skinVertices.length;j++){
-			var _point=this._skinVertices[j];
-			vts[i++] = transform.transformVector(_point);
-		}
-                        
-		this._octree.updateTriangles(vts);
-		this._octree.buildOctree(this._maxTrianglesPerCell, this._minCellSize);
-                        
-		this._boundingBox=this._octree.boundingBox().clone();
-	};
-                
-                /*
-                override public function getInertiaProperties(m:Number):Matrix3D
-                {
-                        return new Matrix3D();
-                }
-                
-                override protected function updateBoundingBox():void {
-                }*/
-	
-	
-	
-	jigLib.JTriangleMesh=JTriangleMesh;
-
-})(jigLib);	
-	(function(jigLib){
 	
 	var Vector3DUtil=jigLib.Vector3DUtil;
 	var JMatrix3D=jigLib.JMatrix3D;
@@ -6657,9 +5958,9 @@ distribution.
 	 * @type boolean
 	 **/
 	JBox.prototype.segmentIntersect=function(out, seg, state){
-		out.fracOut = 0;
-		out.posOut = [0,0,0,0];
-		out.normalOut = [0,0,0,0];
+		out.frac = 0;
+		out.position = [0,0,0,0];
+		out.normal = [0,0,0,0];
 
 		var frac = JNumber3D.NUM_HUGE;
 		var min = -JNumber3D.NUM_HUGE;
@@ -6720,13 +6021,13 @@ distribution.
 		if (frac > 1 - JNumber3D.NUM_TINY){
 			return false;
 		}
-		out.fracOut = frac;
-		out.posOut = seg.getPoint(frac);
+		out.frac = frac;
+		out.position = seg.getPoint(frac);
 
 		if (Vector3DUtil.dotProduct(orientationCol[dir], seg.delta) < 0)
-			out.normalOut = JNumber3D.getScaleVector(orientationCol[dir], -1);
+			out.normal = JNumber3D.getScaleVector(orientationCol[dir], -1);
 		else
-			out.normalOut = orientationCol[dir];
+			out.normal = orientationCol[dir];
 
 		return true;
 	};
@@ -6738,9 +6039,9 @@ distribution.
 	 **/
 	JBox.prototype.getInertiaProperties=function(m){
 		return JMatrix3D.getScaleMatrix(
-			(m / 12) * (this._sideLengths[1] * this._sideLengths[1] + this._sideLengths[2] * this._sideLengths[2]),
-			(m / 12) * (this._sideLengths[0] * this._sideLengths[0] + this._sideLengths[2] * this._sideLengths[2]),
-			(m / 12) * (this._sideLengths[0] * this._sideLengths[0] + this._sideLengths[1] * this._sideLengths[1]));
+			(m/12) * (this._sideLengths[1] * this._sideLengths[1] + this._sideLengths[2] * this._sideLengths[2]),
+			(m/12) * (this._sideLengths[0] * this._sideLengths[0] + this._sideLengths[2] * this._sideLengths[2]),
+			(m/12) * (this._sideLengths[0] * this._sideLengths[0] + this._sideLengths[1] * this._sideLengths[1]));
 	};
 				
 	/**
@@ -6885,9 +6186,9 @@ distribution.
 	 * @type boolean
 	 **/
 	JCapsule.prototype.segmentIntersect=function(out, seg, state){
-		out.fracOut = 0;
-		out.posOut = [0,0,0,0];
-		out.normalOut = [0,0,0,0];
+		out.frac = 0;
+		out.position = [0,0,0,0];
+		out.normal = [0,0,0,0];
 						
 		var Ks = seg.delta;
 		var kss = Vector3DUtil.dotProduct(Ks, Ks);
@@ -6931,11 +6232,11 @@ distribution.
 		if (t < 0 || t > 1) {
 			return false;
 		}
-		out.fracOut = t;
-		out.posOut = seg.getPoint(t);
-		out.normalOut = Vector3DUtil.subtract(out.posOut, getBottomPos(state));
-		out.normalOut = Vector3DUtil.subtract(out.normalOut, JNumber3D.getScaleVector(cols[1], Vector3DUtil.dotProduct(out.normalOut, cols[1])));
-		Vector3DUtil.normalize(out.normalOut);
+		out.frac = t;
+		out.position = seg.getPoint(t);
+		out.normal = Vector3DUtil.subtract(out.posOut, getBottomPos(state));
+		out.normal = Vector3DUtil.subtract(out.normal, JNumber3D.getScaleVector(cols[1], Vector3DUtil.dotProduct(out.normal, cols[1])));
+		Vector3DUtil.normalize(out.normal);
 		return true;
 	};
 
@@ -7087,7 +6388,427 @@ distribution.
 	};
 
 	jigLib.JImageTerrain=JImageTerrain;
-})(jigLib);/*
+})(jigLib);(function(jigLib){
+	var Vector3DUtil=jigLib.Vector3DUtil;
+	var JNumber3D=jigLib.JNumber3D;
+	var PlaneData=jigLib.PlaneData;
+	var JAABox=jigLib.JAABox;
+	
+        /// Support for an indexed triangle - assumes ownership by something that 
+        /// has an array of vertices and an array of tIndexedTriangle
+	var JIndexedTriangle=function(){
+		counter = 0;
+		this._vertexIndices = [];
+		this._vertexIndices[0] = -1;
+		this._vertexIndices[1] = -1;
+		this._vertexIndices[2] = -1;
+		this._plane = new PlaneData();
+		this._boundingBox = new JAABox();
+	};
+	
+	JIndexedTriangle.prototype.counter=0;
+        /// Set the indices into the relevant vertex array for this triangle. Also sets the plane and bounding box
+	JIndexedTriangle.prototype.setVertexIndices=function(i0, i1, i2, vertexArray){
+		this._vertexIndices[0] = i0;
+		this._vertexIndices[1] = i1;
+		this._vertexIndices[2] = i2;
+                        
+		this._plane.setWithPoint(vertexArray[i0], vertexArray[i1], vertexArray[i2]);
+                        
+		this._boundingBox.clear();
+		this._boundingBox.addPoint(vertexArray[i0]);
+		this._boundingBox.addPoint(vertexArray[i1]);
+		this._boundingBox.addPoint(vertexArray[i2]);
+	};
+	
+	JIndexedTriangle.prototype.updateVertexIndices=function(vertexArray){
+		var i0,i1,i2;
+		i0=this._vertexIndices[0];
+		i1=this._vertexIndices[1];
+		i2=this._vertexIndices[2];
+                        
+		this._plane.setWithPoint(vertexArray[i0], vertexArray[i1], vertexArray[i2]);
+                        
+		this._boundingBox.clear();
+		this._boundingBox.addPoint(vertexArray[i0]);
+		this._boundingBox.addPoint(vertexArray[i1]);
+		this._boundingBox.addPoint(vertexArray[i2]);
+	};
+	
+	
+	 // Get the indices into the relevant vertex array for this triangle.
+        JIndexedTriangle.prototype.get_vertexIndices=function(){
+		return this._vertexIndices;
+	};
+                
+	// Get the vertex index association with iCorner (which should be 0, 1 or 2)
+	JIndexedTriangle.prototype.getVertexIndex=function(iCorner){
+		return this._vertexIndices[iCorner];
+	};
+                
+	// Get the triangle plane
+        JIndexedTriangle.prototype.get_plane=function(){
+		return this._plane;
+	};
+                
+        JIndexedTriangle.prototype.get_boundingBox=function(){
+		return this._boundingBox;
+	};
+	
+	
+	jigLib.JIndexedTriangle=JIndexedTriangle;
+
+})(jigLib);
+	(function(jigLib){
+	var Vector3DUtil=jigLib.Vector3DUtil;
+	var JNumber3D=jigLib.JNumber3D;
+	var EdgeData=jigLib.EdgeData;
+	var JIndexedTriangle=jigLib.JIndexedTriangle;
+	var JTriangle=jigLib.JTriangle;
+	var JSegment=jigLib.JSegment;
+	var OctreeCell=jigLib.OctreeCell;
+	var TriangleVertexIndices=jigLib.TriangleVertexIndices;
+	var JAABox=jigLib.JAABox;
+        
+	var JOctree=function(){
+		this._testCounter = 0;
+		this._cells = [];
+		this._vertices = [];
+		this._triangles = [];
+		this._cellsToTest = [];
+		this._boundingBox = new JAABox();
+	};
+	
+	
+	JOctree.prototype.get_trianglesData=function(){
+		return this._triangles;
+	};
+                
+        JOctree.prototype.getTriangle=function(iTriangle) {
+		return this._triangles[iTriangle];
+	};
+                
+        JOctree.prototype.get_verticesData=function(){
+		return this._vertices;
+	};
+        JOctree.prototype.getVertex=function(iVertex){
+		return this._vertices[iVertex];
+	};
+                
+        JOctree.prototype.boundingBox=function(){
+		return this._boundingBox;
+	};
+                
+	JOctree.prototype.clear=function(){
+		this._cells=[];
+		this._vertices=[];
+		this._triangles=[];
+	}
+	
+                
+	// Add the triangles - doesn't actually build the octree
+	JOctree.prototype.addTriangles=function(vertices, numVertices, triangleVertexIndices, numTriangles){
+		this.clear();
+		this._vertices=vertices.slice(0);
+		
+		var NLen,tiny=JNumber3D.NUM_TINY;
+		var i0,i1,i2;
+		var dr1,dr2,N;
+		var indexedTriangle;
+		for(var i=0;i<triangleVertexIndices.length;i++){
+			var tri=triangleVertexIndices[i];
+			var i0 = triangleVertexIndices[i][0];
+			var i1 = triangleVertexIndices[i][1];
+			var i2 = triangleVertexIndices[i][2];
+                                
+			dr1 = Vector3DUtil.subtract(vertices[i1],vertices[i0]);
+			dr2 = Vector3DUtil.subtract(vertices[i2],vertices[i0]);
+			N = Vector3DUtil.crossProduct(dr1,dr2);
+			NLen = Vector3DUtil.get_length(N);
+                                
+			if (NLen > tiny){
+				indexedTriangle = new JIndexedTriangle();
+				indexedTriangle.setVertexIndices(i0, i1, i2, this._vertices);
+				this._triangles.push(indexedTriangle);
+			}
+		}
+	}
+	
+	
+	/* Builds the octree from scratch (not incrementally) - deleting
+                 any previous tree.  Building the octree will involve placing
+                 all triangles into the root cell.  Then this cell gets pushed
+                 onto a stack of cells to examine. This stack will get parsed
+                 and every cell containing more than maxTrianglesPerCell will
+                 get split into 8 children, and all the original triangles in
+                 that cell will get partitioned between the children. A
+                 triangle can end up in multiple cells (possibly a lot!) if it
+                 straddles a boundary. Therefore when intersection tests are
+                 done tIndexedTriangle::m_counter can be set/tested using a
+                 counter to avoid properly testing the triangle multiple times
+                 (the counter _might_ wrap around, so when it wraps ALL the
+                 triangle flags should be cleared! Could do this
+                 incrementally...).*/
+	JOctree.prototype.buildOctree=function(maxTrianglesPerCell, minCellSize){
+		this._boundingBox.clear();
+                        
+		for(var i=0;i<this._vertices.length;i++){
+			var vt=this._vertices[i];
+			this._boundingBox.addPoint(vt);
+		}
+                        
+		this._cells=[];
+		this._cells.push(new OctreeCell(this._boundingBox));
+                        
+		var numTriangles = this._triangles.length;
+		for (var i = 0; i < numTriangles; i++ ) {
+			this._cells[0].triangleIndices[i] = i;
+		}
+                        
+		var cellsToProcess = [];
+		cellsToProcess.push(0);
+                        
+		var iTri;
+		var cellIndex;
+		var childCell;
+		while (cellsToProcess.length != 0) {
+			cellIndex = cellsToProcess.pop();
+			if (this._cells[cellIndex].triangleIndices.length <= maxTrianglesPerCell || this._cells[cellIndex].AABox.getRadiusAboutCentre() < minCellSize) {
+				continue;
+			}
+			
+			for (var i = 0; i < OctreeCell.NUM_CHILDREN; i++ ) {
+				this._cells[cellIndex].childCellIndices[i] = this._cells.length;
+				cellsToProcess.push(this._cells.length);
+				this._cells.push(new OctreeCell(this.createAABox(this._cells[cellIndex].AABox, i)));
+                                        
+				childCell = this._cells[this._cells.length - 1];
+				numTriangles = this._cells[cellIndex].triangleIndices.length;
+				for (var j=0; j < numTriangles; j++ ) {
+					iTri = this._cells[cellIndex].triangleIndices[j];
+					if (this.doesTriangleIntersectCell(this._triangles[iTri], childCell)){
+						childCell.triangleIndices.push(iTri);
+					}
+				}
+			}
+			this._cells[cellIndex].triangleIndices=[];
+		}
+	}
+                
+	JOctree.prototype.updateTriangles=function(vertices){
+		//this._vertices.concat(vertices);
+		this._vertices=vertices.slice(0);
+		for(var i=0;i<this._triangles.length;i++){
+			var triangle=this._triangles[i];
+			triangle.updateVertexIndices(this._vertices);
+		}
+	}
+	
+	JOctree.prototype.getTrianglesIntersectingSegment=function(triangles, seg){
+		if (this._cells.length == 0) return 0;
+                        
+		this._cellsToTest=[];
+		this._cellsToTest.push(0);
+                                               
+		var cellIndex,nTris,cell,triangle;
+		
+		this.incrementTestCounter();
+		while (this._cellsToTest.length != 0) {
+			cellIndex = this._cellsToTest.pop();
+			cell = this._cells[cellIndex];
+                                
+			if (!cell.AABox.segmentAABoxOverlap(seg)) {
+				continue;
+			}
+			
+			if (cell.isLeaf()) {
+				nTris = cell.triangleIndices.length;
+				for (var i = 0 ; i < nTris ; i++) {
+					triangle = this.getTriangle(cell.triangleIndices[i]);
+					if (triangle.counter != this._testCounter) {
+						triangle.counter = this._testCounter;
+						if (triangle.get_boundingBox().segmentAABoxOverlap(seg)) {
+							triangles.push(triangle);
+						}
+					}
+				}
+			}else {
+				for (var i = 0 ; i < OctreeCell.NUM_CHILDREN ; i++) {
+					this._cellsToTest.push(cell.childCellIndices[i]);
+				}
+			}
+		}
+		return triangles.length;
+	}
+                
+	/* Gets a list of all triangle indices that intersect an AABox. The vector passed in resized,
+                 so if you keep it between calls after a while it won't grow any more, and this
+                 won't allocate more memory.
+                 Returns the number of triangles (same as triangles.size())*/
+	JOctree.prototype.getTrianglesIntersectingtAABox=function(triangles, aabb){
+		if (this._cells.length == 0) return 0;
+                        
+		this._cellsToTest=[];
+		this._cellsToTest.push(0);
+                        
+		this.incrementTestCounter();
+                        
+		var cellIndex,nTris,cell,triangle;
+		while (this._cellsToTest.length != 0) {
+			cellIndex = this._cellsToTest.pop();
+			cell = this._cells[cellIndex];
+                                
+			if (!aabb.overlapTest(cell.AABox)) {
+				continue;
+			}
+			if (cell.isLeaf()) {
+				nTris = cell.triangleIndices.length;
+				for (var i = 0 ; i < nTris ; i++) {
+					triangle = this.getTriangle(cell.triangleIndices[i]);
+					if (triangle.counter != this._testCounter) {
+						triangle.counter = this._testCounter;
+						if (aabb.overlapTest(triangle.get_boundingBox())) {
+							triangles.push(cell.triangleIndices[i]);
+						}
+					}
+				}
+			}else {
+				for (var i = 0 ; i < OctreeCell.NUM_CHILDREN ; i++) {
+					this._cellsToTest.push(cell.childCellIndices[i]);
+				}
+			}
+		}
+		return triangles.length;
+	}
+                
+	JOctree.prototype.dumpStats=function(){
+		var maxTris = 0,numTris,cellIndex,cell;
+                        
+		var cellsToProcess = [];
+		cellsToProcess.push(0);
+                        
+		while (cellsToProcess.length != 0) {
+			cellIndex = cellsToProcess.pop();
+                                
+			cell = cell[cellIndex];
+			if (cell.isLeaf()) {
+                                        
+				numTris = cell.triangleIndices.length;
+				if (numTris > maxTris) {
+					maxTris = numTris;
+				}
+			}else {
+				for (var i = 0 ; i < OctreeCell.NUM_CHILDREN ; i++) {
+					if ((cell.childCellIndices[i] >= 0) && (cell.childCellIndices[i] < this._cells.length)) {
+						cellsToProcess.push(cell.childCellIndices[i]);
+					}
+				}
+			}
+		}
+	}
+	
+	
+	// Create a bounding box appropriate for a child, based on a parents AABox
+	JOctree.prototype.createAABox=function(aabb, _id){
+		var dims = JNumber3D.getScaleVector(Vector3DUtil.subtract(aabb.get_maxPos(),aabb.get_minPos()), 0.5);
+		var offset;
+		switch(_id) {
+			case 0:
+				offset = [1, 1, 1];
+				break;
+			case 1:
+				offset = [1, 1, 0];
+				break;
+			case 2:
+				offset = [1, 0, 1];
+				break;
+			case 3:
+				offset = [1, 0, 0];
+				break;
+			case 4:
+				offset = [0, 1, 1];
+				break;
+			case 5:
+				offset = [0, 1, 0];
+				break;
+			case 6:
+				offset = [0, 0, 1];
+				break;
+			case 7:
+				offset = [0, 0, 0];
+				break;
+			default:
+				offset = [0, 0, 0];
+				break;
+		}
+                        		
+		var result = new JAABox();
+		result.set_minPos(Vector3DUtil.add(aabb.get_minPos(),[offset[0] * dims[0], offset[1] * dims[1], offset[2] * dims[2]]));
+		result.set_maxPos(Vector3DUtil.add(result.get_minPos(),dims));
+		Vector3DUtil.scaleBy(dims,0.00001);
+		result.set_minPos(Vector3DUtil.subtract(result.get_minPos(),dims));
+		result.set_maxPos(Vector3DUtil.add(result.get_maxPos(),dims));
+                        
+		return result;
+	}	
+	
+	
+	// Returns true if the triangle intersects or is contained by a cell
+	JOctree.prototype.doesTriangleIntersectCell=function(triangle, cell){
+		if (!triangle.get_boundingBox().overlapTest(cell.AABox)) {
+			return false;
+		}
+		if (cell.AABox.isPointInside(this.getVertex(triangle.getVertexIndex(0))) ||
+			cell.AABox.isPointInside(this.getVertex(triangle.getVertexIndex(1))) ||
+			cell.AABox.isPointInside(this.getVertex(triangle.getVertexIndex(2)))) {
+			return true;
+		}
+
+		var tri = new JTriangle(this.getVertex(triangle.getVertexIndex(0)), this.getVertex(triangle.getVertexIndex(1)), this.getVertex(triangle.getVertexIndex(2)));
+		var edge;
+		var seg;
+		var edges = cell.get_egdes();
+		var pts = cell.get_points();
+		for (var i = 0; i < 12; i++ ) {
+			edge = edges[i];
+			seg = new JSegment(pts[edge.ind0], Vector3DUtil.subtract(pts[edge.ind1],pts[edge.ind0]));
+			if (tri.segmentTriangleIntersection({}, seg)) {
+				return true;
+			}
+		}
+                        
+		var pt0;
+		var pt1;
+		for (i = 0; i < 3; i++ ) {
+			pt0 = tri.getVertex(i);
+			pt1 = tri.getVertex((i + 1) % 3);
+			if (cell.AABox.segmentAABoxOverlap(new JSegment(pt0, Vector3DUtil.subtract(pt1,pt0)))) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+                
+	/* Increment our test counter, wrapping around if necessary and zapping the triangle counters.
+                 Const because we only modify mutable members.*/
+	JOctree.prototype.incrementTestCounter=function(){
+		++this._testCounter;
+		if (this._testCounter == 0) {
+			var numTriangles = this._triangles.length;
+			for (var i = 0; i < numTriangles; i++) {
+				this._triangles[i].counter = 0;
+			}
+			this._testCounter = 1;
+		}
+	}
+	
+	
+	jigLib.JOctree=JOctree;
+
+})(jigLib);
+	
+	/*
    Copyright (c) 2007 Danny Chapman
    http://www.rowlhouse.co.uk
 
@@ -7182,9 +6903,9 @@ distribution.
 	 * @type boolean
 	 **/
 	JPlane.prototype.segmentIntersect=function(out, seg, state){
-		out.fracOut = 0;
-		out.posOut = [0,0,0,0];
-		out.normalOut = [0,0,0,0];
+		out.frac = 0;
+		out.position = [0,0,0,0];
+		out.normal = [0,0,0,0];
 
 		var frac = 0;
 
@@ -7198,10 +6919,10 @@ distribution.
 				return false;
 			}else{
 				frac = t;
-				out.fracOut = frac;
-				out.posOut = seg.getPoint(frac);
-				out.normalOut = this._normal.slice(0);
-				Vector3DUtil.normalize(out.normalOut);
+				out.frac = frac;
+				out.position = seg.getPoint(frac);
+				out.normal = this._normal.slice(0);
+				Vector3DUtil.normalize(out.normal);
 				return true;
 			}
 		}else{
@@ -8266,9 +7987,9 @@ distribution.
 	 * @type boolean
 	 **/
 	JSphere.prototype.segmentIntersect=function(out, seg, state){
-		out.fracOut = 0;
-		out.posOut = [0,0,0,0];
-		out.normalOut = [0,0,0,0];
+		out.frac = 0;
+		out.position = [0,0,0,0];
+		out.normal = [0,0,0,0];
 
 		var frac = 0;
 		var r = seg.delta;
@@ -8297,10 +8018,10 @@ distribution.
 			return false;
 		}
 		frac = Math.max(lambda1, 0);
-		out.fracOut = frac;
-		out.posOut = seg.getPoint(frac);
-		out.normalOut = Vector3DUtil.subtract(out.posOut, state.position);
-		Vector3DUtil.normalize(out.normalOut);
+		out.frac = frac;
+		out.position = seg.getPoint(frac);
+		out.normal = Vector3DUtil.subtract(out.position, state.position);
+		Vector3DUtil.normalize(out.normal);
 		return true;
 	};
 
@@ -8509,7 +8230,439 @@ distribution.
 	
 	jigLib.JTerrain=JTerrain;
 	
-})(jigLib);/*
+})(jigLib);(function(jigLib){
+	var Vector3DUtil=jigLib.Vector3DUtil;
+	var JNumber3D=jigLib.JNumber3D;
+	var CollOutData=jigLib.CollOutData;
+	var PlaneData=jigLib.PlaneData;
+	var SpanData=jigLib.SpanData;
+	
+	// Defines a 3d triangle. Each edge goes from the origin. Cross(edge0, edge1)  gives the triangle normal.
+	
+	// Points specified so that pt1-pt0 is edge0 and p2-pt0 is edge1
+	var JTriangle=function(pt0, pt1, pt2){
+		this.origin = pt0.slice(0);
+		this.edge0 = Vector3DUtil.subtract(pt1,pt0);
+		this.edge1 = Vector3DUtil.subtract(pt2,pt0);
+	};
+	
+                
+	// Edge2 goes from pt1 to pt2
+	JTriangle.prototype.get_edge2=function() {
+		return Vector3DUtil.subtract(this.edge1,this.edge0);
+	};
+                
+	// Gets the triangle normal.
+	JTriangle.prototype.get_normal=function(){
+		var N = Vector3DUtil.crossProduct(this.edge0,this.edge1);
+		Vector3DUtil.normalize(N);
+                        
+		return N;
+	};
+                
+	// Gets the plane containing the triangle
+	JTriangle.prototype.get_plane=function(){
+		var pl = new PlaneData();
+		pl.setWithNormal(this.origin, this.get_normal());
+                        
+		return pl;
+	};
+                
+	// Returns the point parameterised by t0 and t1
+	JTriangle.prototype.getPoint=function(t0, t1) {
+		var d0,d1;
+		d0 = this.edge0.slice(0);
+		d1 = this.edge1.slice(0);
+                        
+		Vector3DUtil.scaleBy(d0,t0);
+		Vector3DUtil.scaleBy(d1,t1);
+                        
+		return Vector3DUtil.add(Vector3DUtil.add(this.origin,d0),d1);
+	};
+	
+	
+	JTriangle.prototype.getCentre=function() {
+		var result = Vector3DUtil.add(this.edge0,this.edge1);
+		Vector3DUtil.scaleBy(result,0.333333);
+                        
+		return Vector3DUtil.add(this.origin,result);
+	};
+                
+	// Same numbering as in the constructor
+	JTriangle.prototype.getVertex=function(_id){
+		switch(_id) {
+			case 1: 
+				return Vector3DUtil.add(this.origin,this.edge0);
+			case 2:
+				return Vector3DUtil.add(this.origin,this.edge1);
+			default:
+				return this.origin;
+		}
+	};
+	
+	JTriangle.prototype.getSpan=function(axis) {
+		var d0,d1,d2;
+		d0 = Vector3DUtil.dotProduct(this.getVertex(0),axis);
+		d1 = Vector3DUtil.dotProduct(this.getVertex(1),axis);
+		d2 = Vector3DUtil.dotProduct(this.getVertex(2),axis);
+                        
+		var result = new SpanData();
+		result.min = Math.min(d0, d1, d2);
+		result.max = Math.max(d0, d1, d2);
+                        
+		return result;
+	};
+	
+	
+	JTriangle.prototype.segmentTriangleIntersection=function(out, seg){
+                        
+		var u,v,t,a,f;
+		var p,s,q;
+                        
+		p = Vector3DUtil.crossProduct(seg.delta,this.edge1);
+		a =Vector3DUtil.dotProduct(this.edge0,p);
+                        
+		if (a > -JNumber3D.NUM_TINY && a < JNumber3D.NUM_TINY) {
+			return false;
+		}
+		
+		f = 1 / a;
+		s = Vector3DUtil.subtract(seg.origin,this.origin);
+		u = f * Vector3DUtil.dotProduct(s,p);
+                        
+		if (u < 0 || u > 1) return false;
+                        
+		q = Vector3DUtil.crossProduct(s,this.edge0);
+		v = f * Vector3DUtil.dotProduct(seg.delta,q);
+		if (v < 0 || (u + v) > 1) return false;
+                        
+		t = f * Vector3DUtil.dotProduct(this.edge1,q);
+		if (t < 0 || t > 1) return false;
+                        
+		if (out) out.frac = t;
+		return true;
+	}
+	
+	
+	JTriangle.prototype.pointTriangleDistanceSq=function(out, point){
+                        
+		var fA00,fA01,fA11,fB0,fB1,fC,fDet,fS,fT,fSqrDist;
+                        
+		var kDiff = Vector3DUtil.subtract(this.origin,point);
+                    fA00 = Vector3DUtil.get_lengthSquared(this.edge0);
+                    fA01 = Vector3DUtil.dotProduct(this.edge0,this.edge1);
+                    fA11 = Vector3DUtil.get_lengthSquared(this.edge1);
+                    fB0 = Vector3DUtil.dotProduct(kDiff,this.edge0);
+                    fB1 = Vector3DUtil.dotProduct(kDiff,this.edge1);
+                    fC = Vector3DUtil.get_lengthSquared(kDiff);
+                    fDet = Math.abs(fA00 * fA11 - fA01 * fA01);
+                    fS = fA01 * fB1 - fA11 * fB0;
+                    fT = fA01 * fB0 - fA00 * fB1;
+                        
+                  if ( fS + fT <= fDet ){
+                        if ( fS < 0 ){
+                          if ( fT < 0 ){  // region 4
+                                if ( fB0 < 0 ){
+                                  fT = 0;
+                                  if ( -fB0 >= fA00 ){
+                                        fS = 1;
+                                        fSqrDist = fA00+2*fB0+fC;
+                                  }else{
+                                        fS = -fB0/fA00;
+                                        fSqrDist = fB0*fS+fC;
+                                  }
+                                }else{
+                                  fS = 0;
+                                  if ( fB1 >= 0 ){
+                                        fT = 0;
+                                        fSqrDist = fC;
+                                  }else if ( -fB1 >= fA11 ){
+                                        fT = 1;
+                                        fSqrDist = fA11+2*fB1+fC;
+                                  }else{
+                                        fT = -fB1/fA11;
+                                        fSqrDist = fB1*fT+fC;
+                                  }
+                                }
+                          }else{  // region 3
+                                fS = 0;
+                                if ( fB1 >= 0 ){
+                                  fT = 0;
+                                  fSqrDist = fC;
+                                }else if ( -fB1 >= fA11 ){
+                                  fT = 1;
+                                  fSqrDist = fA11+2*fB1+fC;
+                                }else{
+                                  fT = -fB1/fA11;
+                                  fSqrDist = fB1*fT+fC;
+                                }
+                          }
+                        }else if ( fT < 0 ){  // region 5
+                          fT = 0;
+                          if ( fB0 >= 0 ){
+                                fS = 0;
+                                fSqrDist = fC;
+                          }else if ( -fB0 >= fA00 ){
+                                fS = 1;
+                                fSqrDist = fA00+2*fB0+fC;
+                          }else{
+                                fS = -fB0/fA00;
+                                fSqrDist = fB0*fS+fC;
+                          }
+                        }else{  // region 0
+                          // minimum at interior point
+                          var fInvDet = 1/fDet;
+                          fS *= fInvDet;
+                          fT *= fInvDet;
+                          fSqrDist = fS * (fA00 * fS + fA01 * fT + 2 * fB0) +fT * (fA01 * fS + fA11 * fT + 2 * fB1) + fC;
+                        }
+                  }else{
+                        var fTmp0,fTmp1,fNumer,fDenom;
+
+                        if ( fS < 0 ){  // region 2
+                          fTmp0 = fA01 + fB0;
+                          fTmp1 = fA11 + fB1;
+                          if ( fTmp1 > fTmp0 ){
+                                fNumer = fTmp1 - fTmp0;
+                                fDenom = fA00-2*fA01+fA11;
+                                if ( fNumer >= fDenom ){
+                                  fS = 1;
+                                  fT = 0;
+                                  fSqrDist = fA00+2*fB0+fC;
+                                }else{
+                                  fS = fNumer/fDenom;
+                                  fT = 1 - fS;
+                                  fSqrDist = fS * (fA00 * fS + fA01 * fT + 2 * fB0) +fT * (fA01 * fS + fA11 * fT + 2 * fB1) + fC;
+                                }
+                          }else{
+                                fS = 0;
+                                if ( fTmp1 <= 0 ){
+                                  fT = 1;
+                                  fSqrDist = fA11+2*fB1+fC;
+                                }else if ( fB1 >= 0 ){
+                                  fT = 0;
+                                  fSqrDist = fC;
+                                }else {
+                                  fT = -fB1/fA11;
+                                  fSqrDist = fB1*fT+fC;
+                                }
+                          }
+                        }else if ( fT < 0 ) { // region 6
+                          fTmp0 = fA01 + fB1;
+                          fTmp1 = fA00 + fB0;
+                          if ( fTmp1 > fTmp0 ){
+                                fNumer = fTmp1 - fTmp0;
+                                fDenom = fA00-2*fA01+fA11;
+                                if ( fNumer >= fDenom ){
+                                  fT = 1;
+                                  fS = 0;
+                                  fSqrDist = fA11+2*fB1+fC;
+                                }else{
+                                  fT = fNumer/fDenom;
+                                  fS = 1 - fT;
+                                  fSqrDist = fS * (fA00 * fS + fA01 * fT + 2 * fB0) +fT * (fA01 * fS + fA11 * fT + 2 * fB1) + fC;
+                                }
+                          }else{
+                                fT = 0;
+                                if ( fTmp1 <= 0 ){
+                                  fS = 1;
+                                  fSqrDist = fA00+2*fB0+fC;
+                                }else if ( fB0 >= 0 ){
+                                  fS = 0;
+                                  fSqrDist = fC;
+                                }else{
+                                  fS = -fB0/fA00;
+                                  fSqrDist = fB0*fS+fC;
+                                }
+                          }
+                        }else{  // region 1
+                          fNumer = fA11 + fB1 - fA01 - fB0;
+                          if ( fNumer <= 0 ){
+                                fS = 0;
+                                fT = 1;
+                                fSqrDist = fA11+2*fB1+fC;
+                          }else{
+                                fDenom = fA00-2*fA01+fA11;
+                                if ( fNumer >= fDenom ){
+                                  fS = 1;
+                                  fT = 0;
+                                  fSqrDist = fA00 + 2 * fB0 + fC;
+                                }else{
+                                  fS = fNumer/fDenom;
+                                  fT = 1 - fS;
+                                  fSqrDist = fS * (fA00 * fS + fA01 * fT + 2 * fB0) +fT * (fA01 * fS + fA11 * fT + 2 * fB1) + fC;
+                                }
+                          }
+                        }
+                  }
+                  out[0] = fS;
+                  out[1] = fT;
+                 
+                  return Math.abs(fSqrDist);
+                }
+	
+	
+	jigLib.JTriangle=JTriangle;
+
+})(jigLib);	(function(jigLib){
+	var Vector3DUtil=jigLib.Vector3DUtil;
+	var JNumber3D=jigLib.JNumber3D;
+	var JMatrix3D=jigLib.JMatrix3D;
+	var JOctree=jigLib.JOctree;
+	var CollOutData=jigLib.CollOutData;
+	var TriangleVertexIndices=jigLib.TriangleVertexIndices;
+	var PhysicsState=jigLib.PhysicsState;
+	var RigidBody=jigLib.RigidBody;
+	var ISkin3D=jigLib.ISkin3D;
+	var JTriangle=jigLib.JTriangle;
+
+	//removed init position and init orientation seems weird to have on trimesh but no other geom types
+	var JTriangleMesh=function(skin, maxTrianglesPerCell, minCellSize){
+		this.Super(skin);
+		if(maxTrianglesPerCell==undefined) maxTrianglesPerCell=20;
+		if(minCellSize==undefined) minCellSize=1;
+                        
+		this._maxTrianglesPerCell = maxTrianglesPerCell;
+		this._minCellSize = minCellSize;
+                        
+		this.set_movable(false);
+                        
+		if(skin){
+			this._skinVertices=skin.vertices;
+			this.createMesh(this._skinVertices,skin.indices);
+                                
+			this._boundingBox=this._octree.boundingBox().clone();
+			this._boundingSphere=this._boundingBox.getRadiusAboutCentre();
+		}
+                        
+		this._type = "TRIANGLEMESH";
+	};
+	
+	jigLib.extend(JTriangleMesh,jigLib.RigidBody);
+	
+	/*Internally set up and preprocess all numTriangles. Each index
+                 should, of course, be from 0 to numVertices-1. Vertices and
+                 triangles are copied and stored internally.*/
+        JTriangleMesh.prototype.createMesh=function(vertices, triangleVertexIndices){
+		this._skinVertices=vertices;
+		var len=vertices.length;
+		var vts=[];
+                        
+		var transform = JMatrix3D.getTranslationMatrix(this.get_currentState().position[0], this.get_currentState().position[1], this.get_currentState().position[2]);
+		transform = JMatrix3D.getAppendMatrix3D(this.get_currentState().get_orientation(), transform);
+                        
+		var i = 0;
+		for(var j=0;j<vertices.length;j++){
+			var _point=vertices[j].slice(0);
+			vts[i++] = transform.transformVector(_point);
+		}
+
+		this._octree = new JOctree();
+                        
+		this._octree.addTriangles(vts, vts.length, triangleVertexIndices, triangleVertexIndices.length);
+		this._octree.buildOctree(this._maxTrianglesPerCell, this._minCellSize);
+                        
+	}
+	
+	
+	
+	JTriangleMesh.prototype.get_octree=function(){
+		return this._octree;
+	}
+                
+        /*JTriangleMesh.prototype.segmentIntersect=function(out, seg, state){
+		var segBox = new jigLib.JAABox();
+		segBox.addSegment(seg);
+                        
+		var potentialTriangles = [];
+		var numTriangles = this._octree.getTrianglesIntersectingtAABox(potentialTriangles, segBox);
+                        
+		var bestFrac = JNumber3D.NUM_HUGE;
+		var tri;
+		var meshTriangle;
+		for (var iTriangle = 0 ; iTriangle < numTriangles ; iTriangle++) {
+			meshTriangle = this._octree.getTriangle(potentialTriangles[iTriangle]);
+                                
+			tri = new JTriangle(this._octree.getVertex(meshTriangle.getVertexIndex(0)), this._octree.getVertex(meshTriangle.getVertexIndex(1)), this._octree.getVertex(meshTriangle.getVertexIndex(2)));
+                                
+			if (tri.segmentTriangleIntersection(out, seg)) {
+				if (out.frac < bestFrac) {
+					bestFrac = out.frac;
+					out.position = seg.getPoint(bestFrac);
+					out.normal = meshTriangle.get_plane().normal;
+				}
+			}
+		}
+		out.frac = bestFrac;
+		if (bestFrac < JNumber3D.NUM_HUGE) {
+			return true;
+		}else {
+			return false;
+		}
+	}*/
+	
+	JTriangleMesh.prototype.segmentIntersect=function(out, seg, state){
+                        
+		var potentialTriangles = [];
+		var numTriangles = this._octree.getTrianglesIntersectingSegment(potentialTriangles, seg);
+                        
+		var bestFrac = JNumber3D.NUM_HUGE;
+		for (var iTriangle = 0 ; iTriangle < numTriangles ; iTriangle++) {
+			var meshTriangle = potentialTriangles[iTriangle];
+                                
+			var tri = new JTriangle(this._octree.getVertex(meshTriangle.getVertexIndex(0)), this._octree.getVertex(meshTriangle.getVertexIndex(1)), this._octree.getVertex(meshTriangle.getVertexIndex(2)));
+                                
+			if (tri.segmentTriangleIntersection(out, seg)) {
+				if (out.frac < bestFrac) {
+					bestFrac = out.frac;
+					out.position = seg.getPoint(bestFrac);
+					out.normal = meshTriangle.get_plane().normal;
+				}
+			}
+		}
+		out.frac = bestFrac;
+		if (bestFrac < JNumber3D.NUM_HUGE) {
+			return true;
+		}else {
+			return false;
+		}
+	}
+	
+	JTriangleMesh.prototype.updateState=function(){
+		this.Super.prototype.updateState.call(this);
+                        
+		var len=this._skinVertices.length;
+		var vts=[];
+		
+		var transform = JMatrix3D.getTranslationMatrix(this.get_currentState().position[0], this.get_currentState().position[1], this.get_currentState().position[2]);
+		transform = JMatrix3D.getAppendMatrix3D(this.get_currentState().get_orientation(), transform);
+
+		var i = 0;
+		for(j=0;j<this._skinVertices.length;j++){
+			var _point=this._skinVertices[j].slice(0);
+			vts[i++] = transform.transformVector(_point);
+		}
+
+		this._octree.updateTriangles(vts);
+		this._octree.buildOctree(this._maxTrianglesPerCell, this._minCellSize);
+                        
+		this._boundingBox=this._octree.boundingBox().clone();
+	}
+                
+                /*
+                override public function getInertiaProperties(m:Number):Matrix3D
+                {
+                        return new Matrix3D();
+                }
+                
+                override protected function updateBoundingBox():void {
+                }*/
+	
+	
+	
+	jigLib.JTriangleMesh=JTriangleMesh;
+
+})(jigLib);	/*
    Copyright (c) 2007 Danny Chapman
    http://www.rowlhouse.co.uk
 
@@ -9372,7 +9525,7 @@ distribution.
                         
 		delta=Vector3DUtil.subtract(boxNewPos,boxOldPos);
 		oldDepth=depth+Vector3DUtil.dotProduct(delta,N);
-                        
+
 		var numPts=pts.length;
 		var collPts = [];
 		if(numPts>0){
@@ -9389,7 +9542,7 @@ distribution.
 			collInfo.objInfo = info;
 			collInfo.dirToBody = N;
 			collInfo.pointInfo = collPts;
-                                
+			
 			var mat = new MaterialProperties();
 			mat.set_restitution(0.5*(box.get_material().get_restitution() + mesh.get_material().get_restitution()));
 			mat.set_friction(0.5*(box.get_material().get_friction() + mesh.get_material().get_friction()));
@@ -10648,7 +10801,8 @@ distribution.
                         
 		var potentialTriangles = [];
 		var numTriangles = mesh.get_octree().getTrianglesIntersectingtAABox(potentialTriangles, sphere.get_boundingBox());
-                        
+		if(!numTriangles) return;
+		
 		var newD2,distToCentre,oldD2,dist,depth,tiny=JNumber3D.NUM_TINY;
 		var meshTriangle;
 		var vertexIndices;
@@ -10657,7 +10811,7 @@ distribution.
 		for (var iTriangle = 0 ; iTriangle < numTriangles ; ++iTriangle) {
 			meshTriangle = mesh.get_octree().getTriangle(potentialTriangles[iTriangle]);
 			distToCentre = meshTriangle.get_plane().pointPlaneDistance(sphere.get_currentState().position);
-			//alert(distToCentre);
+
 			if (distToCentre <= 0) continue;
 			if (distToCentre >= sphereTolR) continue;
                                 
@@ -10670,8 +10824,9 @@ distribution.
 				// have overlap - but actually report the old intersection
 				oldD2 = triangle.pointTriangleDistanceSq(arr, sphere.get_oldState().position);
 				dist = Math.sqrt(oldD2);
+				
 				depth = sphere.get_radius() - dist;
-				var collisionN = (dist > tiny) ? (Vector3DUtil.subtract(sphere.get_oldState().position,triangle.getPoint(arr[0], arr[1]))) : triangle.normal.slice(0);
+				var collisionN = (dist > tiny) ? (Vector3DUtil.subtract(sphere.get_oldState().position,triangle.getPoint(arr[0], arr[1]))) : triangle.get_normal().slice(0);
 				Vector3DUtil.normalize(collisionN);
 				// since impulse get applied at the old position
 				var pt = Vector3DUtil.subtract(sphere.get_oldState().position,JNumber3D.getScaleVector(collisionN, sphere.get_radius()));
@@ -10685,7 +10840,6 @@ distribution.
 				Vector3DUtil.normalize(collNormal);
 			}
 		}
-                        
 		var collInfo = new jigLib.CollisionInfo();
 		collInfo.objInfo = info;
 		collInfo.dirToBody = collNormal;
@@ -11399,12 +11553,13 @@ distribution.
 		// used for grid
 	};
 	
+	
 	CollisionSystemAbstract.prototype.segmentIntersect=function(out, seg, ownerBody){
 		out.frac = JNumber3D.NUM_HUGE;
 		out.position = [];
 		out.normal = [];
-                        
 		var obj = new CollOutBodyData();
+		
 		for(j=0;j<this.collBody.length;j++){
 			var _collBody=this.collBody[j];
 			if (_collBody != ownerBody && this.segmentBounding(seg, _collBody)){
@@ -11434,13 +11589,30 @@ distribution.
 	CollisionSystemAbstract.prototype.segmentBounding=function(seg, obj){
 		var pos = seg.getPoint(0.5);
 		var r = Vector3DUtil.get_length(seg.delta) / 2;
+
+		if (obj.get_type() != "PLANE" && obj.get_type() != "TERRAIN" && obj.get_type() != "TRIANGLEMESH"){
+			var num1 = Vector3DUtil.get_length(Vector3DUtil.subtract(pos, obj.get_currentState().position));
+			var num2 = r + obj.get_boundingSphere();
+			if (num1 <= num2){
+				return true;
+			}else{
+				return false;
+			}
+		}else{
+			return true;
+		}
+	};
+	
+	/*CollisionSystemAbstract.prototype.segmentBounding=function(seg, obj){
+		var pos = seg.getPoint(0.5);
+		var r = Vector3DUtil.get_length(seg.delta) / 2;
                         
 		var num1 = Vector3DUtil.get_length(Vector3DUtil.subtract(pos,obj.get_currentState().position));
-		var num2 = r + obj.boundingSphere;
+		var num2 = r + obj.get_boundingSphere();
                         
 		if (num1 <= num2) return true;
                         else return false;
-	};
+	};*/
 
 	CollisionSystemAbstract.prototype.get_numCollisionsChecks=function(){
 		return this._numCollisionsChecks;    
@@ -12758,6 +12930,7 @@ distribution.
 	var JNumber3D=jigLib.JNumber3D;
 	var BodyPair=jigLib.BodyPair;
 	var CachedImpulse=jigLib.CachedImpulse;
+	var JCollisionEvent=jigLib.JCollisionEvent;
 
 	/**
 	 * @name PhysicsSystem
@@ -13399,16 +13572,15 @@ distribution.
 
 			normalImpulse = deltaVel / ptInfo.denominator;
 
+			gotOne = true;
 			impulse = JNumber3D.getScaleVector(N, normalImpulse);
-			
-			// Performance improvement? Why continue if impulse is nil?
-			if (Vector3DUtil.getSum(impulse) > 0)
-			{
-				appliedImpulse = Vector3DUtil.add(appliedImpulse, impulse); // keep track of the total impulse applied
-				body0.applyBodyWorldImpulse(impulse, ptInfo.r0);
-				body1.applyBodyWorldImpulse(JNumber3D.getScaleVector(impulse, -1), ptInfo.r1);
-				gotOne = true;
-			}
+			appliedImpulse = Vector3DUtil.add(appliedImpulse, impulse); // keep track of the total impulse applied
+
+			body0.applyBodyWorldImpulse(impulse, ptInfo.r0);
+			body1.applyBodyWorldImpulse(JNumber3D.getScaleVector(impulse, -1), ptInfo.r1);
+
+			Vr0 = body0.getVelocity(ptInfo.r0);
+			Vr1 = body1.getVelocity(ptInfo.r1);
 
 			var tempV;
 			var VR = Vr0.slice(0);
@@ -13434,7 +13606,6 @@ distribution.
 
 				if (denominator > JNumber3D.NUM_TINY){
 					var impulseToReverse = tangent_speed / denominator;
-
 					T = JNumber3D.getScaleVector(T, impulseToReverse);
 					body0.applyBodyWorldImpulse(T, ptInfo.r0);
 					body1.applyBodyWorldImpulse(JNumber3D.getScaleVector(T, -1), ptInfo.r1);
@@ -13446,8 +13617,8 @@ distribution.
 			body0.setConstraintsAndCollisionsUnsatisfied();
 			body1.setConstraintsAndCollisionsUnsatisfied();
 			// dispatch collision events
-			body0.dispatchCollisionEvent(body1, appliedImpulse);
-			body1.dispatchCollisionEvent(body0, JNumber3D.getScaleVector(appliedImpulse, -1));
+			body0.dispatchEvent(new JCollisionEvent(body1, appliedImpulse));
+			body1.dispatchEvent(new JCollisionEvent(body0, JNumber3D.getScaleVector(appliedImpulse, -1)));
 		}
 		return gotOne;
 	};
@@ -13498,15 +13669,12 @@ distribution.
 				var actualImpulse = accImpulse - origAccumulatedNormalImpulse;
 
 				impulse = JNumber3D.getScaleVector(N, actualImpulse);
+				appliedImpulse = Vector3DUtil.add(appliedImpulse, impulse); // keep track of the total impulse applied
 				
-				// Performance improvement? Why continue if impulse is nil?
-				if (Vector3DUtil.getSum(impulse) > 0)
-				{
-					appliedImpulse = Vector3DUtil.add(appliedImpulse, impulse); // keep track of the total impulse applied
-					body0.applyBodyWorldImpulse(impulse, ptInfo.r0);
-					body1.applyBodyWorldImpulse(JNumber3D.getScaleVector(impulse, -1), ptInfo.r1);
-					gotOne = true;
-				}
+				body0.applyBodyWorldImpulse(impulse, ptInfo.r0);
+				body1.applyBodyWorldImpulse(JNumber3D.getScaleVector(impulse, -1), ptInfo.r1);
+
+				gotOne = true;
 			}
 
 			Vr0 = body0.getVelocityAux(ptInfo.r0);
@@ -13526,15 +13694,10 @@ distribution.
 				actualImpulse = accImpulseAux - origAccumulatedNormalImpulse;
 
 				impulse = JNumber3D.getScaleVector(N, actualImpulse);
-				
-				// Performance improvement? Why continue if impulse is nil?
-				if (Vector3DUtil.getSum(impulse) > 0)
-				{
-					appliedImpulse = Vector3DUtil.add(appliedImpulse, impulse);
-					body0.applyBodyWorldImpulseAux(impulse, ptInfo.r0);
-					body1.applyBodyWorldImpulseAux(JNumber3D.getScaleVector(impulse, -1), ptInfo.r1);
-					gotOne = true;
-				}
+				body0.applyBodyWorldImpulseAux(impulse, ptInfo.r0);
+				body1.applyBodyWorldImpulseAux(JNumber3D.getScaleVector(impulse, -1), ptInfo.r1);
+
+				gotOne = true;
 			}
 
 			if (ptInfo.accumulatedNormalImpulse > 0){
@@ -13583,8 +13746,8 @@ distribution.
 			body0.setConstraintsAndCollisionsUnsatisfied();
 			body1.setConstraintsAndCollisionsUnsatisfied();
 			// dispatch collision events
-			body0.dispatchCollisionEvent(body1, appliedImpulse);
-			body1.dispatchCollisionEvent(body0, JNumber3D.getScaleVector(appliedImpulse, -1));
+			body0.dispatchEvent(new JCollisionEvent(body1, appliedImpulse));
+			body1.dispatchEvent(new JCollisionEvent(body0, JNumber3D.getScaleVector(appliedImpulse, -1)));
 		}
 		return gotOne;
 	};
@@ -13818,7 +13981,7 @@ distribution.
 		
 		do {
 			effect=this._effects[i];
-			if (effect.enabled) effect.Apply();
+			if (effect.getEnabled()) effect.Apply();
 		} while(i--);
 	};
 	
@@ -14079,6 +14242,7 @@ distribution.
 	
 	jigLib.PhysicsSystem=PhysicsSystem;
 	
+
 })(jigLib);/*
    Copyright (c) 2007 Danny Chapman
    http://www.rowlhouse.co.uk
@@ -14772,18 +14936,17 @@ distribution.
 			
 			if (this._collSystem.segmentIntersect(objArr[iRay], segment, carBody)) {
 				this._lastOnFloor = true;
-				if (objArr[iRay].fracOut < objArr[bestIRay].fracOut){
+				if (objArr[iRay].frac < objArr[bestIRay].frac){
 					bestIRay = iRay;
 				}
 			}
 			segments[iRay] = segment;
 		}
-		
 		if (!this._lastOnFloor) return false;
-
-		var frac= objArr[bestIRay].fracOut;
-		var groundPos = objArr[bestIRay].posOut;
-		var otherBody = objArr[bestIRay].bodyOut;
+		
+		var frac= objArr[bestIRay].frac;
+		var groundPos = objArr[bestIRay].position;
+		var otherBody = objArr[bestIRay].rigidBody;
 
 		var groundNormal = worldAxis.slice(0);
 		if (numRays > 1){
@@ -14851,6 +15014,7 @@ distribution.
 		force = Vector3DUtil.add(force, extraForce);
 
 		carBody.addWorldForce(force, groundPos);
+		
 		if (otherBody.get_movable()){
 			var maxOtherBodyAcc = 500;
 			var maxOtherBodyForce = maxOtherBodyAcc * otherBody.get_mass();

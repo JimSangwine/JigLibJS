@@ -415,7 +415,7 @@ solver: <select name="solver" id="solver">
 	<table>
 		<tr>
 			<td><strong>left gravity field</strong></td>
-			<td><button onclick="leftGF.enabled=!leftGF.enabled; this.innerHTML='switch '+(leftGF.enabled?'off':'on');">switch off</button></td>
+			<td><button onclick="leftGF.setEnabled(!leftGF.getEnabled()); this.innerHTML='switch '+(leftGF.getEnabled()?'off':'on');">switch off</button></td>
 			<td>radius: <div class="slider" id="divlr"><input class="slider-input" id="slidelr" name="slidex" /></div></td>
 			<td><input id="displr" name="displr" type="text" value="0" disabled="disabled" style="width:50px" /></td>
 			<td>strength: <div class="slider" id="divlf"><input class="slider-input" id="slidelf" name="slidex" /></div></td>
@@ -423,7 +423,7 @@ solver: <select name="solver" id="solver">
 		</tr>
 		<tr>
 			<td><strong>right gravity field</strong></td>
-			<td><button onclick="rightGF.enabled=!rightGF.enabled;  this.innerHTML='switch '+(rightGF.enabled?'off':'on');">switch off</button></td>
+			<td><button onclick="rightGF.setEnabled(rightGF.getEnabled);  this.innerHTML='switch '+(rightGF.getEnabled()?'off':'on');">switch off</button></td>
 			<td>radius: <div class="slider" id="divrr"><input class="slider-input" id="sliderr" name="slidex" /></div></td>
 			<td><input id="disprr" name="disprr" type="text" value="0" disabled="disabled" style="width:50px" /></td>
 			<td>strength: <div class="slider" id="divrf"><input class="slider-input" id="sliderf" name="slidex" /></div></td>

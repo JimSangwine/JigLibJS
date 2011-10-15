@@ -1080,7 +1080,7 @@
 		
 		do {
 			effect=this._effects[i];
-			if (effect.enabled) effect.Apply();
+			if (effect.getEnabled()) effect.Apply();
 		} while(i--);
 	};
 	

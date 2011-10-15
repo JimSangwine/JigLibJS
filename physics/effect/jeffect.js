@@ -14,15 +14,14 @@
 	
 	JEffect.prototype._effectEnabled=false;
 	
-	JEffect.prototype.__defineGetter__('enabled', 
-										function() { return this._effectEnabled; });
-	JEffect.prototype.__defineSetter__('enabled', 
-										function(bool) {
-											  				if (bool == this._effectEnabled) return;
-											  				this._effectEnabled = bool;
-											  				if (bool) jigLib.PhysicsSystem.getInstance().addEffect(this);
-											  				else jigLib.PhysicsSystem.getInstance().removeEffect(this);
-														});
+	JEffect.prototype.getEnabled=function() { return this._effectEnabled; };
+	JEffect.prototype.setEnabled=function(bool) 
+	{
+		if (bool == this._effectEnabled) return;
+		this._effectEnabled = bool;
+		if (bool) jigLib.PhysicsSystem.getInstance().addEffect(this);
+		else jigLib.PhysicsSystem.getInstance().removeEffect(this);
+	};
 	
 	/**
 	 * @function Apply this should be implemented by the effect to apply force to bodies in the physics system as appropriate.

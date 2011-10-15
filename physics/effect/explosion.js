@@ -43,7 +43,7 @@
 		if (_parent) this.parent=_parent;
 		if (_parent && _relativity) this.relativity=true;
 		// set to NOT fire instantly...
-		this.enabled = false;
+		this.setEnabled(false);
 	};
 	jigLib.extend(Explosion,jigLib.JEffect);
 
@@ -59,7 +59,7 @@
 	 * @type void
 	 **/
 	Explosion.prototype.explode = function() {
-		this.enabled = true;
+		this.setEnabled(false);
 	};
 	
 	/**
@@ -68,7 +68,7 @@
 	 * @type void
 	 **/
 	Explosion.prototype.Apply = function() {
-		this.enabled = false;
+		this.setEnabled(false);
 		var system=jigLib.PhysicsSystem.getInstance();
 		
 		var bodies=system.get_bodies();
